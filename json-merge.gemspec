@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.email = ["peter.boling@gmail.com"]
 
   spec.summary = "☯️ Intelligent JSON file merging using tree-sitter AST analysis"
-  spec.description = "☯️ Json::Merge provides smart JSON file merging that understands JSON structure. Perfect for merging configuration files like tsconfig.json, package.json, and VS Code settings."
+  spec.description = "☯️ Json::Merge provides smart JSON file merging that understands JSON structure. Perfect for merging strict JSON configuration files like package.json, tsconfig.json (without comments), and other standard JSON files. For JSON with Comments (JSONC) files like devcontainer.json and VS Code settings, use jsonc-merge instead."
   spec.homepage = "https://github.com/kettle-rb/json-merge"
   spec.licenses = ["MIT"]
   spec.required_ruby_version = ">= 3.2.0"
