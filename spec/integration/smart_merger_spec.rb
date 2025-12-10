@@ -59,7 +59,7 @@ RSpec.describe "Json::Merge::SmartMerger Integration" do
       merger = Json::Merge::SmartMerger.new(
         template_json,
         dest_json,
-        signature_match_preference: :template,
+        preference: :template,
       )
       result = merger.merge_result
 

@@ -13,7 +13,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         described_class.new(
           template_analysis,
           dest_analysis,
-          signature_match_preference: preference,
+          preference: preference,
           add_template_only_nodes: opts.fetch(:add_template_only_nodes, false),
         )
       }
@@ -38,7 +38,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         described_class.new(
           template_analysis,
           dest_analysis,
-          signature_match_preference: preference,
+          preference: preference,
           add_template_only_nodes: opts.fetch(:add_template_only_nodes, false),
         )
       }
@@ -94,17 +94,17 @@ RSpec.describe Json::Merge::ConflictResolver do
       skip "Tree-sitter parser not available: #{e.message}"
     end
 
-    it "accepts signature_match_preference option" do
+    it "accepts preference option" do
       template_analysis = Json::Merge::FileAnalysis.new(template_json)
       dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
 
       resolver = described_class.new(
         template_analysis,
         dest_analysis,
-        signature_match_preference: :template,
+        preference: :template,
       )
 
-      expect(resolver.signature_match_preference).to eq(:template)
+      expect(resolver.preference).to eq(:template)
     rescue Json::Merge::ParseError => e
       skip "Tree-sitter parser not available: #{e.message}"
     end
@@ -154,7 +154,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         resolver = described_class.new(
           template_analysis,
           dest_analysis,
-          signature_match_preference: :destination,
+          preference: :destination,
         )
         result = Json::Merge::MergeResult.new
 
@@ -178,7 +178,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         resolver = described_class.new(
           template_analysis,
           dest_analysis,
-          signature_match_preference: :template,
+          preference: :template,
         )
         result = Json::Merge::MergeResult.new
 
@@ -266,7 +266,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         JSON
       end
 
-      it "uses template version when signature_match_preference is :template" do
+      it "uses template version when preference is :template" do
         template_analysis = Json::Merge::FileAnalysis.new(template_json)
         dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
 
@@ -275,7 +275,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         resolver = described_class.new(
           template_analysis,
           dest_analysis,
-          signature_match_preference: :template,
+          preference: :template,
         )
         result = Json::Merge::MergeResult.new
         resolver.resolve(result)
