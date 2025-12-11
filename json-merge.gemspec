@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
   spec.name = "json-merge"
   spec.version = gem_version
   spec.authors = ["Peter H. Boling"]
-  spec.email = ["peter.boling@gmail.com"]
+  spec.email = ["floss@galtzo.com"]
 
   spec.summary = "☯️ Intelligent JSON file merging using tree-sitter AST analysis"
   spec.description = "☯️ Json::Merge provides smart JSON file merging that understands JSON structure. Perfect for merging strict JSON configuration files like package.json, tsconfig.json (without comments), and other standard JSON files. For JSON with Comments (JSONC) files like devcontainer.json and VS Code settings, use jsonc-merge instead."
