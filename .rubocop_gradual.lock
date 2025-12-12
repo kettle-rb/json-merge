@@ -9,18 +9,6 @@
   "lib/json/merge/file_analysis.rb:182267301": [
     [33, 7, 280, "Style/ClassMethodsDefinitions: Use `class << self` to define a class method.", 1842388852]
   ],
-  "spec/integration/conflict_resolver_spec.rb:4131530656": [
-    [7, 16, 43, "RSpec/DescribeClass: The first argument to describe should be the class or module being tested.", 1392989771]
-  ],
-  "spec/integration/file_analysis_spec.rb:782401466": [
-    [5, 16, 39, "RSpec/DescribeClass: The first argument to describe should be the class or module being tested.", 2071993039]
-  ],
-  "spec/integration/reproducible_merge_spec.rb:230366518": [
-    [6, 16, 25, "RSpec/DescribeClass: The first argument to describe should be the class or module being tested.", 2371074703]
-  ],
-  "spec/integration/smart_merger_spec.rb:456519837": [
-    [7, 16, 38, "RSpec/DescribeClass: The first argument to describe should be the class or module being tested.", 233745032]
-  ],
   "spec/json/merge/conflict_resolver_spec.rb:3919071986": [
     [171, 5, 715, "RSpec/RepeatedExampleGroupDescription: Repeated context block description on line(s) [250]", 2684534147],
     [193, 5, 1055, "RSpec/RepeatedExampleGroupDescription: Repeated context block description on line(s) [291]", 3693715596],
