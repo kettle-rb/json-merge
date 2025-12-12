@@ -1,0 +1,92 @@
+{
+  "bin/coverage_branches:2666843168": [
+    [55, 15, 4, "Security/Eval: The use of `eval` is a serious security risk.", 2087429787],
+    [60, 15, 4, "Security/Eval: The use of `eval` is a serious security risk.", 2087429787]
+  ],
+  "lib/json/merge/debug_logger.rb:1957784505": [
+    [25, 7, 310, "Style/ClassMethodsDefinitions: Use `class << self` to define a class method.", 560510623]
+  ],
+  "lib/json/merge/file_analysis.rb:182267301": [
+    [33, 7, 280, "Style/ClassMethodsDefinitions: Use `class << self` to define a class method.", 1842388852]
+  ],
+  "spec/integration/conflict_resolver_spec.rb:4131530656": [
+    [7, 16, 43, "RSpec/DescribeClass: The first argument to describe should be the class or module being tested.", 1392989771]
+  ],
+  "spec/integration/file_analysis_spec.rb:782401466": [
+    [5, 16, 39, "RSpec/DescribeClass: The first argument to describe should be the class or module being tested.", 2071993039]
+  ],
+  "spec/integration/reproducible_merge_spec.rb:230366518": [
+    [6, 16, 25, "RSpec/DescribeClass: The first argument to describe should be the class or module being tested.", 2371074703]
+  ],
+  "spec/integration/smart_merger_spec.rb:456519837": [
+    [7, 16, 38, "RSpec/DescribeClass: The first argument to describe should be the class or module being tested.", 233745032]
+  ],
+  "spec/json/merge/conflict_resolver_spec.rb:3919071986": [
+    [171, 5, 715, "RSpec/RepeatedExampleGroupDescription: Repeated context block description on line(s) [250]", 2684534147],
+    [193, 5, 1055, "RSpec/RepeatedExampleGroupDescription: Repeated context block description on line(s) [291]", 3693715596],
+    [250, 5, 1160, "RSpec/RepeatedExampleGroupDescription: Repeated context block description on line(s) [171]", 3108850528],
+    [291, 5, 1855, "RSpec/RepeatedExampleGroupDescription: Repeated context block description on line(s) [193]", 3401113757]
+  ],
+  "spec/json/merge/emitter_spec.rb:292163533": [
+    [142, 3, 437, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [415]", 2169523705],
+    [175, 3, 922, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [462]", 1421999788],
+    [248, 3, 352, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [519]", 1938529400],
+    [415, 3, 396, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [142]", 3289377453],
+    [462, 3, 974, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [175]", 3811119761],
+    [488, 3, 1064, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [535]", 3706491196],
+    [519, 3, 484, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [248]", 3245280499],
+    [535, 3, 1296, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [488]", 3606241594]
+  ],
+  "spec/json/merge/file_analysis_spec.rb:1139815611": [
+    [48, 3, 282, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [370]", 1497433299],
+    [106, 3, 307, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [331]", 2691349722],
+    [116, 3, 616, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [346]", 3071651696],
+    [135, 3, 606, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [361]", 2498220005],
+    [154, 3, 662, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [259]", 3130079647],
+    [173, 3, 759, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [285]", 907241005],
+    [259, 3, 970, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [154]", 3078937351],
+    [285, 3, 794, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [173]", 2536496035],
+    [331, 3, 530, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [106]", 734803984],
+    [346, 3, 511, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [116]", 2876358096],
+    [361, 3, 278, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [135]", 4158464963],
+    [370, 3, 280, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [48]", 132799468]
+  ],
+  "spec/json/merge/merge_result_spec.rb:4131345703": [
+    [173, 3, 669, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [262]", 3548354579],
+    [262, 3, 2265, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [173]", 4069789389],
+    [269, 7, 56, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [270].", 3909078598],
+    [270, 7, 52, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [269].", 2040498291],
+    [286, 7, 54, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [287].", 4121081532],
+    [287, 7, 54, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [286].", 1605970761],
+    [303, 7, 57, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [304].", 243941100],
+    [304, 7, 55, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [303].", 1410098786]
+  ],
+  "spec/json/merge/node_wrapper_spec.rb:120717732": [
+    [304, 3, 284, "RSpec/RepeatedExampleGroupBody: Repeated describe block body on line(s) [875]", 3185383154],
+    [304, 3, 284, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [875]", 3185383154],
+    [314, 3, 656, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [918]", 1623612896],
+    [334, 3, 285, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [905]", 1891379986],
+    [344, 3, 656, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [885]", 692487363],
+    [684, 41, 24, "RSpec/DescribedClass: Use `described_class` instead of `Json::Merge::NodeWrapper`.", 561375510],
+    [875, 3, 284, "RSpec/RepeatedExampleGroupBody: Repeated describe block body on line(s) [304]", 3185383154],
+    [875, 3, 284, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [304]", 3185383154],
+    [885, 3, 610, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [344]", 2811990084],
+    [905, 3, 367, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [334]", 2011050287],
+    [918, 3, 313, "RSpec/RepeatedExampleGroupDescription: Repeated describe block description on line(s) [314]", 902218438],
+    [1030, 9, 65, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1031].", 2209495228],
+    [1031, 9, 61, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1030].", 2588250876],
+    [1204, 9, 57, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1205].", 291610984],
+    [1205, 9, 55, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1204].", 3024504452],
+    [1230, 9, 54, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1231].", 683985497],
+    [1231, 9, 53, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1230].", 3181608418],
+    [1244, 9, 54, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1245].", 683985497],
+    [1245, 9, 52, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1244].", 3740626865],
+    [1259, 9, 54, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1260].", 683985497],
+    [1260, 9, 54, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1259].", 1913864695],
+    [1330, 9, 53, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1331].", 3306844878],
+    [1331, 9, 51, "RSpec/ReceiveMessages: Use `receive_messages` instead of multiple stubs on lines [1330].", 2614058433]
+  ],
+  "spec/json/version_spec.rb:1725752435": [
+    [3, 1, 35, "RSpec/SpecFilePathFormat: Spec path should end with `json/merge/version*_spec.rb`.", 3235300651]
+  ]
+}

@@ -144,13 +144,11 @@ module Json
         if dest_node.container? && template_node.container?
           # Both are containers - recursively merge their children
           merge_container_nodes(template_node, dest_node, template_analysis, dest_analysis, result)
-        else
+        elsif @preference == :destination
           # Leaf nodes or mismatched types - use preference
-          if @preference == :destination
-            add_node_to_result(dest_node, result, :destination, MergeResult::DECISION_KEPT_DEST, dest_analysis)
-          else
-            add_node_to_result(template_node, result, :template, MergeResult::DECISION_KEPT_TEMPLATE, template_analysis)
-          end
+          add_node_to_result(dest_node, result, :destination, MergeResult::DECISION_KEPT_DEST, dest_analysis)
+        else
+          add_node_to_result(template_node, result, :template, MergeResult::DECISION_KEPT_TEMPLATE, template_analysis)
         end
       end
 
@@ -198,7 +196,7 @@ module Json
       def merge_container_nodes(template_node, dest_node, template_analysis, dest_analysis, result)
         # Use destination's opening line (or template if dest doesn't have one)
         opening = dest_node.opening_line || template_node.opening_line
-  result.add_line(opening, decision: MergeResult::DECISION_MERGED, source: :merged) if opening
+        result.add_line(opening, decision: MergeResult::DECISION_MERGED, source: :merged) if opening
 
         # Recursively merge the children
         template_children = template_node.mergeable_children
@@ -214,7 +212,7 @@ module Json
 
         # Use destination's closing line (or template if dest doesn't have one)
         closing = dest_node.closing_line || template_node.closing_line
-  result.add_line(closing, decision: MergeResult::DECISION_MERGED, source: :merged) if closing
+        result.add_line(closing, decision: MergeResult::DECISION_MERGED, source: :merged) if closing
       end
 
       # Add a node to the result (non-container or leaf node)

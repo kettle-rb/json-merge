@@ -105,7 +105,7 @@ module Json
       # @return [String, nil]
       def root_object_open_line
         obj = root_object
-        return nil unless obj&.start_line
+        return unless obj&.start_line
 
         line_at(obj.start_line)&.chomp
       end
@@ -114,7 +114,7 @@ module Json
       # @return [String, nil]
       def root_object_close_line
         obj = root_object
-        return nil unless obj&.end_line
+        return unless obj&.end_line
 
         line_at(obj.end_line)&.chomp
       end
@@ -193,7 +193,7 @@ module Json
       end
 
       def compute_node_signature(node)
-        return nil unless node.is_a?(NodeWrapper)
+        return unless node.is_a?(NodeWrapper)
 
         node.signature
       end

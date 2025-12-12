@@ -159,7 +159,7 @@ module Json
         ?signature_match_preference: (Symbol | Hash[Symbol, Symbol]),
         ?add_template_only_nodes: bool,
         ?signature_generator: (^(untyped) -> Array[untyped]?)?,
-        ?node_splitter: (Hash[Symbol, untyped])?,
+        ?node_splitter: Hash[Symbol, untyped]?,
         ?parser_path: String?
       ) -> void
 

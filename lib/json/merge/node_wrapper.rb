@@ -225,7 +225,7 @@ module Json
       # Returns the full line content including any leading whitespace
       # @return [String, nil]
       def opening_line
-        return nil unless container? && @start_line
+        return unless container? && @start_line
 
         @lines[@start_line - 1]
       end
@@ -234,7 +234,7 @@ module Json
       # Returns the full line content including any leading whitespace
       # @return [String, nil]
       def closing_line
-        return nil unless container? && @end_line
+        return unless container? && @end_line
 
         @lines[@end_line - 1]
       end
