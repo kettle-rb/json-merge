@@ -1,7 +1,19 @@
 # frozen_string_literal: true
 
 # External gems
-require "tree_sitter"
+# TreeHaver provides a unified cross-Ruby interface to tree-sitter
+require "tree_haver"
+
+# Register tree-sitter json grammar
+json_finder = TreeHaver::GrammarFinder.new(:json)
+json_available = json_finder.available?
+json_finder.register! if json_available
+
+# Ensure grammar is available
+unless json_available
+  warn "WARNING: JSON grammar not available. #{json_finder.not_found_message}"
+end
+
 require "version_gem"
 require "set"
 

@@ -91,7 +91,7 @@ RSpec.describe Json::Merge::ConflictResolver do
       expect(resolver.template_analysis).to eq(template_analysis)
       expect(resolver.dest_analysis).to eq(dest_analysis)
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
 
     it "accepts preference option" do
@@ -106,7 +106,7 @@ RSpec.describe Json::Merge::ConflictResolver do
 
       expect(resolver.preference).to eq(:template)
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
 
     it "accepts add_template_only_nodes option" do
@@ -121,7 +121,7 @@ RSpec.describe Json::Merge::ConflictResolver do
 
       expect(resolver.add_template_only_nodes).to be true
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
   end
 
@@ -140,7 +140,7 @@ RSpec.describe Json::Merge::ConflictResolver do
 
       expect(result.lines).not_to be_empty
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
 
     context "with destination preference" do
@@ -164,7 +164,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         # Destination-only values should be preserved
         expect(output).to include("custom")
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -186,7 +186,7 @@ RSpec.describe Json::Merge::ConflictResolver do
 
         expect(result.lines).not_to be_empty
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -226,7 +226,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         output = result.to_json
         expect(output).to include("newField")
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -243,7 +243,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         # Should not raise
         expect { resolver.resolve(result) }.not_to raise_error
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -284,7 +284,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         content = result.to_json
         expect(content).to include("template-value").or include("2.0.0")
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -324,7 +324,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         content = result.to_json
         expect(content).to include("new_field")
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
 
       it "skips template-only nodes when disabled" do
@@ -345,7 +345,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         content = result.to_json
         expect(content).not_to include("new_field")
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
   end
@@ -367,7 +367,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         # Resolve should work even if some signatures are nil
         expect { resolver.resolve(result) }.not_to raise_error
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -387,7 +387,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         # Should handle various statement types gracefully
         expect { resolver.resolve(result) }.not_to raise_error
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -410,7 +410,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         # Should have the shared key
         expect(content).to include("shared")
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
 
       it "handles destination-only statements" do
@@ -431,7 +431,7 @@ RSpec.describe Json::Merge::ConflictResolver do
         expect(content).to include("dest_only")
         expect(content).not_to include("template_only")
       rescue Json::Merge::ParseError => e
-        skip "Tree-sitter parser not available: #{e.message}"
+        skip "tree-sitter parser not available: #{e.message}"
       end
     end
   end

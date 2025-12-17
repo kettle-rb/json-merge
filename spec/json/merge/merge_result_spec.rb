@@ -274,7 +274,7 @@ RSpec.describe Json::Merge::MergeResult do
       # Should not add any lines since start_line is nil
       expect(result.lines.length).to eq(initial_line_count)
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
 
     it "skips nodes without end_line" do
@@ -291,7 +291,7 @@ RSpec.describe Json::Merge::MergeResult do
       # Should not add any lines since end_line is nil
       expect(result.lines.length).to eq(initial_line_count)
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
 
     it "skips lines that are nil from analysis" do
@@ -308,7 +308,7 @@ RSpec.describe Json::Merge::MergeResult do
       # Should not add any lines since line_at returns nil for out-of-range
       expect(result.lines.length).to eq(initial_line_count)
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
   end
 end

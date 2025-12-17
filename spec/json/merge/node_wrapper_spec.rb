@@ -13,7 +13,7 @@ RSpec.describe Json::Merge::NodeWrapper do
       expect(statements).to be_an(Array)
       expect(statements).to all(be_a(described_class))
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
   end
 
@@ -24,7 +24,7 @@ RSpec.describe Json::Merge::NodeWrapper do
       @analysis = Json::Merge::FileAnalysis.new(json_content)
       @wrapper = @analysis.statements.find { |s| s.is_a?(described_class) }
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
 
     describe "#type" do
