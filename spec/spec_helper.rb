@@ -24,6 +24,16 @@ end
 # this library
 require "json/merge"
 
+# Register JSON grammar for TreeHaver if available
+# This is required for tests that use TreeHaver to parse JSON
+begin
+  require "tree_haver"
+  finder = TreeHaver::GrammarFinder.new(:json)
+  finder.register! if finder.available?
+rescue LoadError, TreeHaver::NotAvailable
+  # TreeHaver or JSON grammar not available - tests will skip or use fallback
+end
+
 RSpec.configure do |config|
   config.before do
     # Speed up polling loops

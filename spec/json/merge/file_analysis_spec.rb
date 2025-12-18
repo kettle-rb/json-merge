@@ -395,8 +395,9 @@ RSpec.describe Json::Merge::FileAnalysis do
         original_env = ENV["TREE_SITTER_JSON_PATH"]
         begin
           # Create a temp file to simulate parser path
+          # Must have .so extension to pass PathValidator checks
           require "tempfile"
-          Tempfile.create("fake_parser") do |f|
+          Tempfile.create(["fake_parser", ".so"]) do |f|
             ENV["TREE_SITTER_JSON_PATH"] = f.path
             result = described_class.find_parser_path
             expect(result).to eq(f.path)
