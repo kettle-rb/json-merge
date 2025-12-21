@@ -19,30 +19,13 @@ module Json
       attr_reader :errors
 
       class << self
-        # Find the parser library path
-        #
-        # Uses TreeHaver::GrammarFinder if available, otherwise
-        # searches common paths directly.
+        # Find the parser library path using TreeHaver::GrammarFinder
         #
         # @return [String, nil] Path to the parser library or nil if not found
         def find_parser_path
-          # Use TreeHaver's GrammarFinder if available
-          if defined?(TreeHaver::GrammarFinder)
-            TreeHaver::GrammarFinder.new(:json).find_library_path
-          else
-            # Fallback: check environment variable first
-            env_path = ENV["TREE_SITTER_JSON_PATH"]
-            return env_path if env_path && File.exist?(env_path)
+          return unless defined?(TreeHaver::GrammarFinder)
 
-            # Search common paths
-            [
-              "/usr/lib/libtree-sitter-json.so",
-              "/usr/lib64/libtree-sitter-json.so",
-              "/usr/local/lib/libtree-sitter-json.so",
-              "/opt/homebrew/lib/libtree-sitter-json.dylib",
-              "/usr/local/lib/libtree-sitter-json.dylib",
-            ].find { |path| File.exist?(path) }
-          end
+          TreeHaver::GrammarFinder.new(:json).find_library_path
         end
       end
 
@@ -51,12 +34,14 @@ module Json
       # @param source [String] JSON source code to analyze
       # @param signature_generator [Proc, nil] Custom signature generator
       # @param parser_path [String, nil] Path to tree-sitter-json parser library
-      def initialize(source, signature_generator: nil, parser_path: nil)
+      # @param options [Hash] Additional options (forward compatibility - freeze_token, node_typing, etc.)
+      def initialize(source, signature_generator: nil, parser_path: nil, **options)
         @source = source
         @lines = source.lines.map(&:chomp)
         @signature_generator = signature_generator
         @parser_path = parser_path || self.class.find_parser_path
         @errors = []
+        # **options captures any additional parameters (e.g., freeze_token, node_typing) for forward compatibility
 
         # Parse the JSON
         DebugLogger.time("FileAnalysis#parse_json") { parse_json }
