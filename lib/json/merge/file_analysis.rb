@@ -132,35 +132,33 @@ module Json
         end
 
         begin
-          # Determine which language to use (do this BEFORE creating parser)
-          language = if @parser_path
-            # Custom parser path was explicitly provided
-            if File.exist?(@parser_path)
-              # Use the provided path
-              TreeHaver::Language.from_library(@parser_path, symbol: "tree_sitter_json", name: "json")
-            else
-              # Explicit path doesn't exist - this is an error
-              @errors << "Provided parser path does not exist: #{@parser_path}"
-              @ast = nil
-              return
-            end
+          # Let TreeHaver handle all backend selection and language loading
+          parser = TreeHaver::Parser.new
+
+          # Get the language - tree_haver handles automatic discovery and backend selection
+          language = if @parser_path && !@parser_path.empty? && File.exist?(@parser_path)
+            # Explicit parser path provided - use it
+            TreeHaver::Language.from_library(@parser_path, symbol: "tree_sitter_json", name: "json")
           elsif TreeHaver::Language.respond_to?(:json)
-            # Use registered json language (from GrammarFinder)
+            # Use registered json language (auto-discovered by GrammarFinder)
             TreeHaver::Language.json
           else
-            # No language available
-            error_msg = if defined?(TreeHaver::GrammarFinder)
-              TreeHaver::GrammarFinder.new(:json).not_found_message
-            else
-              "tree-sitter json parser not found. Install tree-sitter-json or set TREE_SITTER_JSON_PATH."
+            # Try to auto-register via GrammarFinder
+            if defined?(TreeHaver::GrammarFinder)
+              finder = TreeHaver::GrammarFinder.new(:json)
+              finder.register! if finder.available?
+              TreeHaver::Language.json if TreeHaver::Language.respond_to?(:json)
             end
+          end
+
+          unless language
+            error_msg = "No JSON parser available. Install tree-sitter-json (via tree_haver) or set TREE_SITTER_JSON_PATH."
             @errors << error_msg
             @ast = nil
             return
           end
 
-          # Use TreeHaver's unified interface
-          parser = TreeHaver::Parser.new
+          # Parse with tree_haver's unified interface
           parser.language = language
           @ast = parser.parse(@source)
 
