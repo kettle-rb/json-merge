@@ -36,6 +36,7 @@ module Json
       # @param region_placeholder [String, nil] Custom placeholder for regions
       # @param node_typing [Hash{Symbol,String => #call}, nil] Node typing configuration
       #   for per-node-type merge preferences
+      # @param options [Hash] Additional options for forward compatibility
       def initialize(
         template_content,
         dest_content,
@@ -46,7 +47,8 @@ module Json
         match_refiner: nil,
         regions: nil,
         region_placeholder: nil,
-        node_typing: nil
+        node_typing: nil,
+        **options
       )
         super(
           template_content,
@@ -59,6 +61,7 @@ module Json
           regions: regions,
           region_placeholder: region_placeholder,
           node_typing: node_typing,
+          **options
         )
       end
 

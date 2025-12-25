@@ -23,8 +23,6 @@ module Json
         #
         # @return [String, nil] Path to the parser library or nil if not found
         def find_parser_path
-          return unless defined?(TreeHaver::GrammarFinder)
-
           TreeHaver::GrammarFinder.new(:json).find_library_path
         end
       end
@@ -123,49 +121,21 @@ module Json
       private
 
       def parse_json
-        # Check if TreeHaver is available
-        unless defined?(TreeHaver)
-          error_msg = "TreeHaver not available. Install tree_haver gem."
-          @errors << error_msg
-          @ast = nil
-          return
-        end
-
         begin
-          # Let TreeHaver handle all backend selection and language loading
-          parser = TreeHaver::Parser.new
+          # Use TreeHaver's high-level API - it handles:
+          # - Grammar auto-discovery
+          # - Backend selection
+          parser = TreeHaver.parser_for(:json, library_path: @parser_path)
 
-          # Get the language - tree_haver handles automatic discovery and backend selection
-          language = if @parser_path && !@parser_path.empty? && File.exist?(@parser_path)
-            # Explicit parser path provided - use it
-            TreeHaver::Language.from_library(@parser_path, symbol: "tree_sitter_json", name: "json")
-          elsif TreeHaver::Language.respond_to?(:json)
-            # Use registered json language (auto-discovered by GrammarFinder)
-            TreeHaver::Language.json
-          else
-            # Try to auto-register via GrammarFinder
-            if defined?(TreeHaver::GrammarFinder)
-              finder = TreeHaver::GrammarFinder.new(:json)
-              finder.register! if finder.available?
-              TreeHaver::Language.json if TreeHaver::Language.respond_to?(:json)
-            end
-          end
-
-          unless language
-            error_msg = "No JSON parser available. Install tree-sitter-json (via tree_haver) or set TREE_SITTER_JSON_PATH."
-            @errors << error_msg
-            @ast = nil
-            return
-          end
-
-          # Parse with tree_haver's unified interface
-          parser.language = language
           @ast = parser.parse(@source)
 
           # Check for parse errors in the tree
           if @ast&.root_node&.has_error?
             collect_parse_errors(@ast.root_node)
           end
+        rescue TreeHaver::NotAvailable => e
+          @errors << e.message
+          @ast = nil
         rescue StandardError => e
           @errors << e
           @ast = nil

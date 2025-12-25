@@ -1347,4 +1347,228 @@ RSpec.describe Json::Merge::NodeWrapper do
       end
     end
   end
+
+  describe "#mergeable_children", :tree_sitter_json do
+    context "for object nodes" do
+      it "returns pairs" do
+        json = '{"a": 1, "b": 2}'
+        analysis = Json::Merge::FileAnalysis.new(json)
+        root = analysis.root_object
+        skip "No root object" unless root
+        children = root.mergeable_children
+        expect(children.size).to eq(root.pairs.size)
+        expect(children.all?(&:pair?)).to be true
+      end
+    end
+
+    context "for array nodes" do
+      it "returns elements" do
+        json = '["a", "b"]'
+        analysis = Json::Merge::FileAnalysis.new(json)
+        root = analysis.root_node
+        skip "No root node" unless root
+        array_node = root.children.find(&:array?)
+        skip "No array" unless array_node
+        children = array_node.mergeable_children
+        expect(children.size).to eq(array_node.elements.size)
+        expect(children.all?(&:string?)).to be true
+      end
+    end
+
+    context "for leaf nodes (string, number, etc.)" do
+      it "returns empty array for string values" do
+        json = '{"key": "value"}'
+        analysis = Json::Merge::FileAnalysis.new(json)
+        root = analysis.root_object
+        skip "No root object" unless root
+        pair = root.pairs.first
+        skip "No pair" unless pair
+        value = pair.value_node
+        skip "No value node" unless value
+        expect(value.mergeable_children).to eq([])
+      end
+    end
+  end
+
+  describe "#container?", :tree_sitter_json do
+    it "returns true for objects" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.container?).to be true
+    end
+
+    it "returns true for arrays" do
+      json = '["item"]'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.container?).to be true
+    end
+
+    it "returns false for leaf nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.container?).to be false
+    end
+  end
+
+  describe "#leaf?", :tree_sitter_json do
+    it "returns false for objects" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.leaf?).to be false
+    end
+
+    it "returns true for string values" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.leaf?).to be true
+    end
+  end
+
+  describe "#opening_line", :tree_sitter_json do
+    it "returns the opening line for objects" do
+      json = "{\n  \"key\": \"value\"\n}"
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.opening_line).to eq("{")
+    end
+
+    it "returns the opening line for arrays" do
+      json = "[\n  \"item\"\n]"
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.opening_line).to eq("[")
+    end
+
+    it "returns nil for non-container nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.opening_line).to be_nil
+    end
+  end
+
+  describe "#closing_line", :tree_sitter_json do
+    it "returns the closing line for objects" do
+      json = "{\n  \"key\": \"value\"\n}"
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.closing_line).to eq("}")
+    end
+
+    it "returns the closing line for arrays" do
+      json = "[\n  \"item\"\n]"
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.closing_line).to eq("]")
+    end
+
+    it "returns nil for non-container nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.closing_line).to be_nil
+    end
+  end
+
+  describe "#opening_bracket", :tree_sitter_json do
+    it "returns { for objects" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.opening_bracket).to eq("{")
+    end
+
+    it "returns [ for arrays" do
+      json = '["item"]'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.opening_bracket).to eq("[")
+    end
+
+    it "returns nil for non-container nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.opening_bracket).to be_nil
+    end
+  end
+
+  describe "#closing_bracket", :tree_sitter_json do
+    it "returns } for objects" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.closing_bracket).to eq("}")
+    end
+
+    it "returns ] for arrays" do
+      json = '["item"]'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.closing_bracket).to eq("]")
+    end
+
+    it "returns nil for non-container nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.closing_bracket).to be_nil
+    end
+  end
 end
