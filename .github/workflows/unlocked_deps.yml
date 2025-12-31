@@ -65,8 +65,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Install tree-sitter dependencies (Ubuntu)
-        run: .github/scripts/ubuntu/setup-tree-sitter.sh --sudo --grammars=json
+      - name: Install tree-sitter and json grammar
+        uses: kettle-rb/ts-grammar-action@main
+        with:
+          grammar-json: true
 
       - name: Setup Ruby & RubyGems
         uses: ruby/setup-ruby@v1
