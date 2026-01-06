@@ -3,7 +3,7 @@
 require "json/merge"
 require "ast/merge/rspec/shared_examples"
 
-RSpec.describe "JSON reproducible merge" do
+RSpec.describe "JSON reproducible merge", :json_grammar do
   let(:fixtures_path) { File.expand_path("../fixtures/reproducible", __dir__) }
   let(:merger_class) { Json::Merge::SmartMerger }
   let(:file_extension) { "json" }

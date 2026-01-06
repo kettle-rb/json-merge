@@ -4,7 +4,7 @@
 # Note: tree-sitter JSON parser does not support JSONC comments, so tests
 # that need valid parsing use strict JSON.
 
-RSpec.describe "Json::Merge::ConflictResolver Integration" do
+RSpec.describe "Json::Merge::ConflictResolver Integration", :json_grammar do
   describe "with template preference for matching signatures" do
     let(:template_json) do
       <<~JSON

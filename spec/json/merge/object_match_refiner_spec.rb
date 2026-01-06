@@ -49,7 +49,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "#call" do
+  describe "#call", :json_grammar do
     let(:template_json) { <<~JSON }
       {
         "databaseUrl": "postgres://localhost/myapp",
@@ -145,7 +145,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "array object matching" do
+  describe "array object matching", :json_grammar do
     let(:template_json) { <<~JSON }
       {
         "users": [
@@ -188,7 +188,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "greedy matching" do
+  describe "greedy matching", :json_grammar do
     let(:template_json) { <<~JSON }
       {
         "foo": 1,

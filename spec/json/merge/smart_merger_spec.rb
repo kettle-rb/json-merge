@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe Json::Merge::SmartMerger do
+RSpec.describe Json::Merge::SmartMerger, :json_grammar do
   let(:template_json) do
     <<~JSON
       {
@@ -53,7 +53,7 @@ RSpec.describe Json::Merge::SmartMerger do
     end
   end
 
-  describe "#merge", :json_grammar do
+  describe "#merge" do
     it "returns a MergeResult" do
       merger = described_class.new(template_json, dest_json)
       result = merger.merge_result

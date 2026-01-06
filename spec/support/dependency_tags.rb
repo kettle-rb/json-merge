@@ -28,6 +28,34 @@ RSpec.configure do |config|
         puts "  #{dep}: #{status}"
       end
       puts "======================================\n"
+
+      # Detailed grammar finder debugging
+      puts "\n=== JSON Grammar Finder Debug ==="
+      begin
+        finder = TreeHaver::GrammarFinder.new(:json)
+        puts "  ENV var name: #{finder.env_var_name}"
+        puts "  ENV var set?: #{ENV.key?(finder.env_var_name)}"
+        puts "  ENV var value: #{ENV[finder.env_var_name].inspect}"
+        puts "  Library filename: #{finder.library_filename}"
+        puts "  Search paths:"
+        finder.search_paths.each do |path|
+          exists = File.exist?(path)
+          puts "    #{path} (exists: #{exists})"
+        end
+        puts "  find_library_path result: #{finder.find_library_path.inspect}"
+        puts "  tree_sitter_runtime_usable?: #{TreeHaver::GrammarFinder.tree_sitter_runtime_usable?}"
+        puts "  available?: #{finder.available?}"
+      rescue => e
+        puts "  ERROR: #{e.class}: #{e.message}"
+        puts e.backtrace.first(5).map { |l| "    #{l}" }.join("\n")
+      end
+      puts "=================================\n"
+
+      # Also show LD_LIBRARY_PATH
+      puts "\n=== Library Path Environment ==="
+      puts "  LD_LIBRARY_PATH: #{ENV["LD_LIBRARY_PATH"].inspect}"
+      puts "  DYLD_LIBRARY_PATH: #{ENV["DYLD_LIBRARY_PATH"].inspect}"
+      puts "================================\n"
     end
   end
 end
