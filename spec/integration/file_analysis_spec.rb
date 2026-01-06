@@ -2,7 +2,7 @@
 
 # Integration tests for FileAnalysis with real JSON parsing scenarios
 
-RSpec.describe "Json::Merge::FileAnalysis Integration" do
+RSpec.describe "Json::Merge::FileAnalysis Integration", :json_grammar do
   describe "with valid JSON" do
     let(:json_content) do
       <<~JSON

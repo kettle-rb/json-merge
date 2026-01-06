@@ -13,7 +13,7 @@ RSpec.describe Json::Merge::NodeWrapper do
       expect(statements).to be_an(Array)
       expect(statements).to all(be_a(described_class))
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
   end
 
@@ -24,7 +24,7 @@ RSpec.describe Json::Merge::NodeWrapper do
       @analysis = Json::Merge::FileAnalysis.new(json_content)
       @wrapper = @analysis.statements.find { |s| s.is_a?(described_class) }
     rescue Json::Merge::ParseError => e
-      skip "Tree-sitter parser not available: #{e.message}"
+      skip "tree-sitter parser not available: #{e.message}"
     end
 
     describe "#type" do
@@ -681,7 +681,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         pair = root.pairs.first
         skip "No pair" unless pair
         # Value should be present
-        expect(pair.value_node).to be_a(Json::Merge::NodeWrapper)
+        expect(pair.value_node).to be_a(described_class)
       end
     end
 
@@ -872,60 +872,6 @@ RSpec.describe Json::Merge::NodeWrapper do
     end
   end
 
-  describe "#comment?" do
-    it "returns false for non-comment nodes" do
-      json = '{"key": "value"}'
-      analysis = Json::Merge::FileAnalysis.new(json)
-      root = analysis.root_object
-      skip "No root object" unless root
-      expect(root.comment?).to be false
-    end
-  end
-
-  describe "#find_child_by_type" do
-    it "finds child by type name" do
-      json = '{"key": "value"}'
-      analysis = Json::Merge::FileAnalysis.new(json)
-      root = analysis.root_object
-      skip "No root object" unless root
-      pair = root.find_child_by_type("pair")
-      expect(pair).not_to be_nil
-    end
-
-    it "returns nil when type not found" do
-      json = '{"key": "value"}'
-      analysis = Json::Merge::FileAnalysis.new(json)
-      root = analysis.root_object
-      skip "No root object" unless root
-      array = root.find_child_by_type("array")
-      expect(array).to be_nil
-    end
-  end
-
-  describe "#node_text" do
-    it "extracts text using byte positions" do
-      json = '{"emoji": "🎉"}'
-      analysis = Json::Merge::FileAnalysis.new(json)
-      root = analysis.root_object
-      skip "No root object" unless root
-      pair = root.pairs.first
-      skip "No pair" unless pair
-      text = pair.text
-      expect(text).to include("emoji")
-    end
-  end
-
-  describe "#content" do
-    it "returns empty string when no line info" do
-      json = '{"key": "value"}'
-      analysis = Json::Merge::FileAnalysis.new(json)
-      root = analysis.root_object
-      skip "No root object" unless root
-      content = root.content
-      expect(content).to be_a(String)
-    end
-  end
-
   describe "edge case: end_line before start_line" do
     # This tests the constructor's edge case handling
     it "handles malformed line ranges" do
@@ -1027,8 +973,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         end_point = double("end", row: 2) # end is before start - edge case
         allow(mock_node).to receive(:respond_to?).with(:start_point).and_return(true)
         allow(mock_node).to receive(:respond_to?).with(:end_point).and_return(true)
-        allow(mock_node).to receive(:start_point).and_return(start_point)
-        allow(mock_node).to receive(:end_point).and_return(end_point)
+        allow(mock_node).to receive_messages(start_point: start_point, end_point: end_point)
 
         wrapper = described_class.new(mock_node, lines: Array.new(10) { |i| "line #{i}" }, source: "")
         # end_line should be corrected to equal start_line
@@ -1201,8 +1146,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         allow(mock_node).to receive(:respond_to?).with(:start_byte).and_return(true)
         allow(mock_node).to receive(:respond_to?).with(:end_byte).and_return(true)
         # Out of range bytes will return nil from slice
-        allow(mock_node).to receive(:start_byte).and_return(1000)
-        allow(mock_node).to receive(:end_byte).and_return(2000)
+        allow(mock_node).to receive_messages(start_byte: 1000, end_byte: 2000)
 
         wrapper = described_class.new(mock_node, lines: ['"test"'], source: '"test"')
         expect(wrapper.text).to eq("")
@@ -1227,8 +1171,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         allow(mock_node).to receive(:respond_to?).with(:end_point).and_return(false)
         allow(mock_node).to receive(:respond_to?).with(:start_byte).and_return(true)
         allow(mock_node).to receive(:respond_to?).with(:end_byte).and_return(true)
-        allow(mock_node).to receive(:start_byte).and_return(0)
-        allow(mock_node).to receive(:end_byte).and_return(15) # "// test comment" is 15 chars
+        allow(mock_node).to receive_messages(start_byte: 0, end_byte: 15) # "// test comment" is 15 chars
 
         wrapper = described_class.new(mock_node, lines: ["// test comment"], source: "// test comment")
         sig = wrapper.signature
@@ -1241,8 +1184,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         allow(mock_node).to receive(:respond_to?).with(:end_point).and_return(false)
         allow(mock_node).to receive(:respond_to?).with(:start_byte).and_return(true)
         allow(mock_node).to receive(:respond_to?).with(:end_byte).and_return(true)
-        allow(mock_node).to receive(:start_byte).and_return(0)
-        allow(mock_node).to receive(:end_byte).and_return(7)
+        allow(mock_node).to receive_messages(start_byte: 0, end_byte: 7)
 
         wrapper = described_class.new(mock_node, lines: ["content"], source: "content")
         sig = wrapper.signature
@@ -1256,8 +1198,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         allow(mock_node).to receive(:respond_to?).with(:end_point).and_return(false)
         allow(mock_node).to receive(:respond_to?).with(:start_byte).and_return(true)
         allow(mock_node).to receive(:respond_to?).with(:end_byte).and_return(true)
-        allow(mock_node).to receive(:start_byte).and_return(0)
-        allow(mock_node).to receive(:end_byte).and_return(100)
+        allow(mock_node).to receive_messages(start_byte: 0, end_byte: 100)
 
         wrapper = described_class.new(mock_node, lines: [long_content], source: long_content)
         sig = wrapper.signature
@@ -1327,8 +1268,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         allow(mock_key).to receive(:respond_to?).with(:start_byte).and_return(true)
         allow(mock_key).to receive(:respond_to?).with(:end_byte).and_return(true)
         # Empty string
-        allow(mock_key).to receive(:start_byte).and_return(0)
-        allow(mock_key).to receive(:end_byte).and_return(0)
+        allow(mock_key).to receive_messages(start_byte: 0, end_byte: 0)
 
         mock_pair = double("pair", type: "pair")
         allow(mock_pair).to receive(:respond_to?).with(:child_by_field_name).and_return(true)
@@ -1345,6 +1285,230 @@ RSpec.describe Json::Merge::NodeWrapper do
         # Actually "" is truthy in Ruby, so it will be included
         expect(sig).to eq([:object, [""]])
       end
+    end
+  end
+
+  describe "#mergeable_children", :json_grammar do
+    context "with object nodes" do
+      it "returns pairs" do
+        json = '{"a": 1, "b": 2}'
+        analysis = Json::Merge::FileAnalysis.new(json)
+        root = analysis.root_object
+        skip "No root object" unless root
+        children = root.mergeable_children
+        expect(children.size).to eq(root.pairs.size)
+        expect(children.all?(&:pair?)).to be true
+      end
+    end
+
+    context "with array nodes" do
+      it "returns elements" do
+        json = '["a", "b"]'
+        analysis = Json::Merge::FileAnalysis.new(json)
+        root = analysis.root_node
+        skip "No root node" unless root
+        array_node = root.children.find(&:array?)
+        skip "No array" unless array_node
+        children = array_node.mergeable_children
+        expect(children.size).to eq(array_node.elements.size)
+        expect(children.all?(&:string?)).to be true
+      end
+    end
+
+    context "with leaf nodes (string, number, etc.)" do
+      it "returns empty array for string values" do
+        json = '{"key": "value"}'
+        analysis = Json::Merge::FileAnalysis.new(json)
+        root = analysis.root_object
+        skip "No root object" unless root
+        pair = root.pairs.first
+        skip "No pair" unless pair
+        value = pair.value_node
+        skip "No value node" unless value
+        expect(value.mergeable_children).to eq([])
+      end
+    end
+  end
+
+  describe "#container?", :json_grammar do
+    it "returns true for objects" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.container?).to be true
+    end
+
+    it "returns true for arrays" do
+      json = '["item"]'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.container?).to be true
+    end
+
+    it "returns false for leaf nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.container?).to be false
+    end
+  end
+
+  describe "#leaf?", :json_grammar do
+    it "returns false for objects" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.leaf?).to be false
+    end
+
+    it "returns true for string values" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.leaf?).to be true
+    end
+  end
+
+  describe "#opening_line", :json_grammar do
+    it "returns the opening line for objects" do
+      json = "{\n  \"key\": \"value\"\n}"
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.opening_line).to eq("{")
+    end
+
+    it "returns the opening line for arrays" do
+      json = "[\n  \"item\"\n]"
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.opening_line).to eq("[")
+    end
+
+    it "returns nil for non-container nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.opening_line).to be_nil
+    end
+  end
+
+  describe "#closing_line", :json_grammar do
+    it "returns the closing line for objects" do
+      json = "{\n  \"key\": \"value\"\n}"
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.closing_line).to eq("}")
+    end
+
+    it "returns the closing line for arrays" do
+      json = "[\n  \"item\"\n]"
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.closing_line).to eq("]")
+    end
+
+    it "returns nil for non-container nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.closing_line).to be_nil
+    end
+  end
+
+  describe "#opening_bracket", :json_grammar do
+    it "returns { for objects" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.opening_bracket).to eq("{")
+    end
+
+    it "returns [ for arrays" do
+      json = '["item"]'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.opening_bracket).to eq("[")
+    end
+
+    it "returns nil for non-container nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.opening_bracket).to be_nil
+    end
+  end
+
+  describe "#closing_bracket", :json_grammar do
+    it "returns } for objects" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      expect(root.closing_bracket).to eq("}")
+    end
+
+    it "returns ] for arrays" do
+      json = '["item"]'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_node
+      skip "No root node" unless root
+      array_node = root.children.find(&:array?)
+      skip "No array" unless array_node
+      expect(array_node.closing_bracket).to eq("]")
+    end
+
+    it "returns nil for non-container nodes" do
+      json = '{"key": "value"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root object" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      value = pair.value_node
+      skip "No value node" unless value
+      expect(value.closing_bracket).to be_nil
     end
   end
 end

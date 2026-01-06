@@ -49,7 +49,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "#call" do
+  describe "#call", :json_grammar do
     let(:template_json) { <<~JSON }
       {
         "databaseUrl": "postgres://localhost/myapp",
@@ -145,7 +145,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "array object matching" do
+  describe "array object matching", :json_grammar do
     let(:template_json) { <<~JSON }
       {
         "users": [
@@ -188,7 +188,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "greedy matching" do
+  describe "greedy matching", :json_grammar do
     let(:template_json) { <<~JSON }
       {
         "foo": 1,
@@ -222,6 +222,241 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
 
       template_nodes = matches.map(&:template_node)
       expect(template_nodes.uniq.size).to eq(template_nodes.size)
+    end
+  end
+
+  describe "#match_array_objects", :json_grammar do
+    let(:template_json) { <<~JSON }
+      [
+        {"id": 1, "name": "Alice"},
+        {"id": 2, "name": "Bob"}
+      ]
+    JSON
+
+    let(:dest_json) { <<~JSON }
+      [
+        {"id": 1, "name": "Alice Updated"},
+        {"id": 3, "name": "Charlie"}
+      ]
+    JSON
+
+    let(:template_analysis) { Json::Merge::FileAnalysis.new(template_json) }
+    let(:dest_analysis) { Json::Merge::FileAnalysis.new(dest_json) }
+
+    it "matches objects in arrays by key overlap" do
+      # Get array elements - they should be objects
+      template_nodes = template_analysis.statements.flat_map do |s|
+        s.respond_to?(:elements) ? s.elements : []
+      end.select { |n| n.respond_to?(:object?) && n.object? }
+
+      dest_nodes = dest_analysis.statements.flat_map do |s|
+        s.respond_to?(:elements) ? s.elements : []
+      end.select { |n| n.respond_to?(:object?) && n.object? }
+
+      skip "No objects in arrays" if template_nodes.empty? || dest_nodes.empty?
+
+      matches = refiner.send(:match_array_objects, template_nodes, dest_nodes)
+      expect(matches).to be_an(Array)
+    end
+
+    it "returns empty array when template objects is empty" do
+      matches = refiner.send(:match_array_objects, [], [double("obj")])
+      expect(matches).to eq([])
+    end
+
+    it "returns empty array when dest objects is empty" do
+      matches = refiner.send(:match_array_objects, [double("obj")], [])
+      expect(matches).to eq([])
+    end
+  end
+
+  describe "#compute_object_similarity", :json_grammar do
+    let(:template_json) { '{"a": 1, "b": 2}' }
+    let(:dest_json) { '{"a": 1, "c": 3}' }
+
+    let(:template_analysis) { Json::Merge::FileAnalysis.new(template_json) }
+    let(:dest_analysis) { Json::Merge::FileAnalysis.new(dest_json) }
+
+    it "returns 1.0 when both objects are empty" do
+      t_json = "{}"
+      d_json = "{}"
+      t_analysis = Json::Merge::FileAnalysis.new(t_json)
+      d_analysis = Json::Merge::FileAnalysis.new(d_json)
+      t_obj = t_analysis.root_object
+      d_obj = d_analysis.root_object
+      skip "No objects" unless t_obj && d_obj
+
+      score = refiner.send(:compute_object_similarity, t_obj, d_obj)
+      expect(score).to eq(1.0)
+    end
+
+    it "returns 0.0 when template is empty but dest has keys" do
+      t_json = "{}"
+      d_json = '{"key": "value"}'
+      t_analysis = Json::Merge::FileAnalysis.new(t_json)
+      d_analysis = Json::Merge::FileAnalysis.new(d_json)
+      t_obj = t_analysis.root_object
+      d_obj = d_analysis.root_object
+      skip "No objects" unless t_obj && d_obj
+
+      score = refiner.send(:compute_object_similarity, t_obj, d_obj)
+      expect(score).to eq(0.0)
+    end
+
+    it "returns 0.0 when dest is empty but template has keys" do
+      t_json = '{"key": "value"}'
+      d_json = "{}"
+      t_analysis = Json::Merge::FileAnalysis.new(t_json)
+      d_analysis = Json::Merge::FileAnalysis.new(d_json)
+      t_obj = t_analysis.root_object
+      d_obj = d_analysis.root_object
+      skip "No objects" unless t_obj && d_obj
+
+      score = refiner.send(:compute_object_similarity, t_obj, d_obj)
+      expect(score).to eq(0.0)
+    end
+  end
+
+  describe "#compute_fuzzy_key_matches" do
+    it "returns 1.0 when both key sets are empty" do
+      score = refiner.send(:compute_fuzzy_key_matches, [], [])
+      expect(score).to eq(1.0)
+    end
+
+    it "returns 0.0 when first set is empty" do
+      score = refiner.send(:compute_fuzzy_key_matches, [], ["key"])
+      expect(score).to eq(0.0)
+    end
+
+    it "returns 0.0 when second set is empty" do
+      score = refiner.send(:compute_fuzzy_key_matches, ["key"], [])
+      expect(score).to eq(0.0)
+    end
+
+    it "computes fuzzy similarity between keys" do
+      score = refiner.send(:compute_fuzzy_key_matches, ["userName"], ["user_name"])
+      expect(score).to be > 0.5
+    end
+  end
+
+  describe "#value_similarity", :json_grammar do
+    it "returns 0.5 when template value is nil" do
+      score = refiner.send(:value_similarity, nil, double("value"))
+      expect(score).to eq(0.5)
+    end
+
+    it "returns 0.5 when dest value is nil" do
+      score = refiner.send(:value_similarity, double("value"), nil)
+      expect(score).to eq(0.5)
+    end
+
+    it "returns 0.0 when types differ" do
+      t_val = double("string", type: :string, string?: true)
+      d_val = double("number", type: :number, number?: true)
+      score = refiner.send(:value_similarity, t_val, d_val)
+      expect(score).to eq(0.0)
+    end
+
+    it "compares string values" do
+      json = '{"a": "hello", "b": "world"}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root" unless root
+      pairs = root.pairs
+      skip "Not enough pairs" if pairs.size < 2
+      t_val = pairs[0].value_node
+      d_val = pairs[1].value_node
+      skip "No values" unless t_val && d_val
+
+      score = refiner.send(:value_similarity, t_val, t_val)
+      expect(score).to eq(1.0)
+    end
+
+    it "compares object values" do
+      t_json = '{"nested": {"a": 1}}'
+      d_json = '{"nested": {"b": 2}}'
+      t_analysis = Json::Merge::FileAnalysis.new(t_json)
+      d_analysis = Json::Merge::FileAnalysis.new(d_json)
+      t_obj = t_analysis.root_object
+      d_obj = d_analysis.root_object
+      skip "No objects" unless t_obj && d_obj
+      t_pair = t_obj.pairs.first
+      d_pair = d_obj.pairs.first
+      skip "No pairs" unless t_pair && d_pair
+      t_val = t_pair.value_node
+      d_val = d_pair.value_node
+      skip "No nested values" unless t_val && d_val
+
+      score = refiner.send(:value_similarity, t_val, d_val)
+      expect(score).to be_a(Float)
+    end
+
+    it "compares array values" do
+      t_json = '{"arr": [1, 2, 3]}'
+      d_json = '{"arr": [1, 2]}'
+      t_analysis = Json::Merge::FileAnalysis.new(t_json)
+      d_analysis = Json::Merge::FileAnalysis.new(d_json)
+      t_obj = t_analysis.root_object
+      d_obj = d_analysis.root_object
+      skip "No objects" unless t_obj && d_obj
+      t_pair = t_obj.pairs.first
+      d_pair = d_obj.pairs.first
+      skip "No pairs" unless t_pair && d_pair
+      t_val = t_pair.value_node
+      d_val = d_pair.value_node
+      skip "No array values" unless t_val && d_val
+
+      score = refiner.send(:value_similarity, t_val, d_val)
+      expect(score).to be_a(Float)
+      expect(score).to be > 0
+    end
+
+    it "returns 0.5 for other same-type values (numbers, booleans)" do
+      json = '{"a": 42}'
+      analysis = Json::Merge::FileAnalysis.new(json)
+      root = analysis.root_object
+      skip "No root" unless root
+      pair = root.pairs.first
+      skip "No pair" unless pair
+      val = pair.value_node
+      skip "No value" unless val
+
+      score = refiner.send(:value_similarity, val, val)
+      expect(score).to be >= 0.5
+    end
+  end
+
+  describe "#array_similarity", :json_grammar do
+    it "returns 1.0 when both arrays are empty" do
+      t_json = '{"arr": []}'
+      d_json = '{"arr": []}'
+      t_analysis = Json::Merge::FileAnalysis.new(t_json)
+      d_analysis = Json::Merge::FileAnalysis.new(d_json)
+      t_obj = t_analysis.root_object
+      d_obj = d_analysis.root_object
+      skip "No objects" unless t_obj && d_obj
+      t_arr = t_obj.pairs.first&.value_node
+      d_arr = d_obj.pairs.first&.value_node
+      skip "No arrays" unless t_arr && d_arr
+
+      score = refiner.send(:array_similarity, t_arr, d_arr)
+      expect(score).to eq(1.0)
+    end
+
+    it "returns 0.0 when one array is empty" do
+      t_json = '{"arr": []}'
+      d_json = '{"arr": [1, 2, 3]}'
+      t_analysis = Json::Merge::FileAnalysis.new(t_json)
+      d_analysis = Json::Merge::FileAnalysis.new(d_json)
+      t_obj = t_analysis.root_object
+      d_obj = d_analysis.root_object
+      skip "No objects" unless t_obj && d_obj
+      t_arr = t_obj.pairs.first&.value_node
+      d_arr = d_obj.pairs.first&.value_node
+      skip "No arrays" unless t_arr && d_arr
+
+      score = refiner.send(:array_similarity, t_arr, d_arr)
+      expect(score).to eq(0.0)
     end
   end
 end

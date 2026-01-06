@@ -30,6 +30,19 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Security
 
-## [0.1.0] - 2025-12-05
+## [1.0.0] - 2026-01-06
+
+- TAG: [v1.0.0][1.0.0t]
+- COVERAGE: 100.00% -- 194/194 lines in 2 files
+- BRANCH COVERAGE: 84.15% -- 69/82 branches in 2 files
+- 96.67% documented
+
+### Added
 
 - Initial release
+
+### Security
+
+[Unreleased]: https://github.com/kettle-rb/json-merge/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/kettle-rb/json-merge/compare/f1cc25b1d9b79c598270e3aa203fa56787e6c6fc...v1.0.0
+[1.0.0t]: https://github.com/kettle-rb/json-merge/tags/v1.0.0
