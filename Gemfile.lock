@@ -36,7 +36,7 @@ PATH
   specs:
     json-merge (1.0.0)
       ast-merge (~> 3.0, >= 3.0.0)
-      tree_haver (~> 3.2, >= 3.2.5)
+      tree_haver (~> 3.2, >= 3.2.6)
       version_gem (~> 1.1, >= 1.1.9)
 
 GEM
@@ -328,7 +328,7 @@ GEM
       delegate (~> 0.1)
       rspec (~> 3.0)
       timecop (>= 0.7, < 1)
-    tree_haver (3.2.5)
+    tree_haver (3.2.6)
       version_gem (~> 1.1, >= 1.1.9)
     tsort (0.2.0)
     ttfunk (1.8.0)
@@ -520,7 +520,7 @@ CHECKSUMS
   thor (1.4.0) sha256=8763e822ccb0f1d7bee88cde131b19a65606657b847cc7b7b4b82e772bcd8a3d
   timecop (0.9.10) sha256=12ba45ce57cdcf6b1043cb6cdffa6381fd89ce10d369c28a7f6f04dc1b0cd8eb
   timecop-rspec (1.0.3) sha256=005f14841bb606dcaefb060e321b5388e2e59537742bee8b3a9a9a40e598fab9
-  tree_haver (3.2.5) sha256=be676b367fd4804db09e22b20f87a17736eeb0a0aa815ea1fa56430bb4862e36
+  tree_haver (3.2.6) sha256=0c7a07a260bcbaea05a61671af84e36b8e6166379b6abae5def154f643487d4e
   tree_stump (0.1.0)
   tsort (0.2.0) sha256=9650a793f6859a43b6641671278f79cfead60ac714148aabe4e3f0060480089f
   ttfunk (1.8.0) sha256=a7cbc7e489cc46e979dde04d34b5b9e4f5c8f1ee5fc6b1a7be39b829919d20ca

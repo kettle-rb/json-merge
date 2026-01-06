@@ -82,7 +82,7 @@ Gem::Specification.new do |spec|
   spec.executables = []
 
   # Parser - tree_haver provides unified tree-sitter & citrus interface
-  spec.add_dependency("tree_haver", "~> 3.2", ">= 3.2.5")                           # ruby >= 3.2.0
+  spec.add_dependency("tree_haver", "~> 3.2", ">= 3.2.6")                           # ruby >= 3.2.0
   # NOTE: tree-sitter-json parser must be installed separately via your package manager
   #       e.g., `apt install libtree-sitter-json-dev` or built from source
   # A ruby interface for tree-sitter must also be installed (pick ONE):

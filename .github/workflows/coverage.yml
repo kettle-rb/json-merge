@@ -86,8 +86,6 @@ jobs:
           ls -la /usr/lib/libtree-sitter-* 2>/dev/null || echo "No libraries in /usr/lib"
           ldconfig -p | grep tree-sitter || echo "No tree-sitter in ldconfig"
       - name: Tests for ${{ matrix.ruby }}@current via ${{ matrix.exec_cmd }}
-        env:
-          JSON_MERGE_DEBUG: "true"
         run: bundle exec appraisal ${{ matrix.appraisal }} bundle exec ${{ matrix.exec_cmd }}
 
       # Do SaaS coverage uploads first
