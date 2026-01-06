@@ -20,37 +20,26 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Added
 
-- Initial release
-
 ### Changed
-
-- **NodeWrapper**: Now inherits from `Ast::Merge::NodeWrapperBase`
-  - Removes ~80 lines of duplicated code (initialization, line extraction, basic methods)
-  - Keeps only JSON-specific type predicates and signature computation
-  - Adds `#node_wrapper?` method for distinguishing from `NodeTyping::Wrapper`
-- **FileAnalysis error handling**: Now rescues `TreeHaver::Error` instead of `TreeHaver::NotAvailable`
-  - `TreeHaver::Error` inherits from `Exception`, not `StandardError`
-  - `TreeHaver::NotAvailable` is a subclass of `TreeHaver::Error`, so it's also caught
-  - Fixes parse error handling on alternative Ruby engines
-- **Dependency tags**: Refactored to use shared `TreeHaver::RSpec::DependencyTags` from tree_haver gem
-  - All dependency detection is now centralized in tree_haver
-  - Use `require "tree_haver/rspec"` for shared RSpec configuration
-  - `JsonMergeDependencies` is now an alias to `TreeHaver::RSpec::DependencyTags`
-  - Enables `JSON_MERGE_DEBUG=1` for dependency summary output
 
 ### Deprecated
 
 ### Removed
 
-- **Load-time grammar registration** - TreeHaver's `parser_for` now handles grammar discovery
-  and registration automatically. Removed manual `GrammarFinder` calls and warnings from
-  `lib/json/merge.rb`.
-
 ### Fixed
 
-- No longer warns about missing JSON grammar when the grammar file exists but tree-sitter runtime is unavailable
-  - This is expected behavior when using non-tree-sitter backends (Citrus, Prism, etc.)
-  - Warning now only appears when the grammar file is actually missing
+### Security
+
+## [1.0.0] - 2026-01-06
+
+- TAG: [v1.0.0][1.0.0t]
+- COVERAGE: 100.00% -- 194/194 lines in 2 files
+- BRANCH COVERAGE: 84.15% -- 69/82 branches in 2 files
+- 96.67% documented
+
+### Added
+
+- Initial release
 
 ### Security
 
