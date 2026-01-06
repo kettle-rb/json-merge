@@ -81,7 +81,7 @@ RSpec.describe Json::Merge::ConflictResolver do
     JSON
   end
 
-  describe "#initialize" do
+  describe "#initialize", :json_grammar do
     it "creates a resolver with analyses" do
       template_analysis = Json::Merge::FileAnalysis.new(template_json)
       dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
@@ -90,8 +90,6 @@ RSpec.describe Json::Merge::ConflictResolver do
 
       expect(resolver.template_analysis).to eq(template_analysis)
       expect(resolver.dest_analysis).to eq(dest_analysis)
-    rescue Json::Merge::ParseError => e
-      skip "tree-sitter parser not available: #{e.message}"
     end
 
     it "accepts preference option" do
@@ -105,8 +103,6 @@ RSpec.describe Json::Merge::ConflictResolver do
       )
 
       expect(resolver.preference).to eq(:template)
-    rescue Json::Merge::ParseError => e
-      skip "tree-sitter parser not available: #{e.message}"
     end
 
     it "accepts add_template_only_nodes option" do
@@ -120,12 +116,10 @@ RSpec.describe Json::Merge::ConflictResolver do
       )
 
       expect(resolver.add_template_only_nodes).to be true
-    rescue Json::Merge::ParseError => e
-      skip "tree-sitter parser not available: #{e.message}"
     end
   end
 
-  describe "#resolve" do
+  describe "#resolve", :json_grammar do
     it "populates the result" do
       template_analysis = Json::Merge::FileAnalysis.new(template_json)
       dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
@@ -139,8 +133,6 @@ RSpec.describe Json::Merge::ConflictResolver do
       resolver.resolve(result)
 
       expect(result.lines).not_to be_empty
-    rescue Json::Merge::ParseError => e
-      skip "tree-sitter parser not available: #{e.message}"
     end
 
     context "with destination preference" do
@@ -163,8 +155,6 @@ RSpec.describe Json::Merge::ConflictResolver do
         output = result.to_json
         # Destination-only values should be preserved
         expect(output).to include("custom")
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -185,8 +175,45 @@ RSpec.describe Json::Merge::ConflictResolver do
         resolver.resolve(result)
 
         expect(result.lines).not_to be_empty
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
+      end
+
+      context "with different values" do
+        let(:template_json) do
+          <<~JSON
+            {
+              "name": "template-value",
+              "version": "2.0.0"
+            }
+          JSON
+        end
+
+        let(:dest_json) do
+          <<~JSON
+            {
+              "name": "dest-value",
+              "version": "1.0.0"
+            }
+          JSON
+        end
+
+        it "uses template version when preference is :template" do
+          template_analysis = Json::Merge::FileAnalysis.new(template_json)
+          dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
+
+          skip "FileAnalysis not valid" unless template_analysis.valid? && dest_analysis.valid?
+
+          resolver = described_class.new(
+            template_analysis,
+            dest_analysis,
+            preference: :template,
+          )
+          result = Json::Merge::MergeResult.new
+          resolver.resolve(result)
+
+          # With template preference, should use template values
+          content = result.to_json
+          expect(content).to include("template-value").or include("2.0.0")
+        end
       end
     end
 
@@ -225,8 +252,63 @@ RSpec.describe Json::Merge::ConflictResolver do
 
         output = result.to_json
         expect(output).to include("newField")
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
+      end
+
+      context "with new_field fixture" do
+        let(:template_json) do
+          <<~JSON
+            {
+              "name": "test",
+              "new_field": "from_template"
+            }
+          JSON
+        end
+
+        let(:dest_json) do
+          <<~JSON
+            {
+              "name": "test"
+            }
+          JSON
+        end
+
+        it "adds nodes only present in template" do
+          template_analysis = Json::Merge::FileAnalysis.new(template_json)
+          dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
+
+          skip "FileAnalysis not valid" unless template_analysis.valid? && dest_analysis.valid?
+
+          resolver = described_class.new(
+            template_analysis,
+            dest_analysis,
+            add_template_only_nodes: true,
+          )
+          result = Json::Merge::MergeResult.new
+          resolver.resolve(result)
+
+          # Should include the template-only field
+          content = result.to_json
+          expect(content).to include("new_field")
+        end
+
+        it "skips template-only nodes when disabled" do
+          template_analysis = Json::Merge::FileAnalysis.new(template_json)
+          dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
+
+          skip "FileAnalysis not valid" unless template_analysis.valid? && dest_analysis.valid?
+
+          resolver = described_class.new(
+            template_analysis,
+            dest_analysis,
+            add_template_only_nodes: false,
+          )
+          result = Json::Merge::MergeResult.new
+          resolver.resolve(result)
+
+          # Should NOT include the template-only field
+          content = result.to_json
+          expect(content).not_to include("new_field")
+        end
       end
     end
 
@@ -242,115 +324,11 @@ RSpec.describe Json::Merge::ConflictResolver do
 
         # Should not raise
         expect { resolver.resolve(result) }.not_to raise_error
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
-      end
-    end
-
-    context "with template preference" do
-      let(:template_json) do
-        <<~JSON
-          {
-            "name": "template-value",
-            "version": "2.0.0"
-          }
-        JSON
-      end
-
-      let(:dest_json) do
-        <<~JSON
-          {
-            "name": "dest-value",
-            "version": "1.0.0"
-          }
-        JSON
-      end
-
-      it "uses template version when preference is :template" do
-        template_analysis = Json::Merge::FileAnalysis.new(template_json)
-        dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
-
-        skip "FileAnalysis not valid" unless template_analysis.valid? && dest_analysis.valid?
-
-        resolver = described_class.new(
-          template_analysis,
-          dest_analysis,
-          preference: :template,
-        )
-        result = Json::Merge::MergeResult.new
-        resolver.resolve(result)
-
-        # With template preference, should use template values
-        content = result.to_json
-        expect(content).to include("template-value").or include("2.0.0")
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
-      end
-    end
-
-    context "with add_template_only_nodes enabled" do
-      let(:template_json) do
-        <<~JSON
-          {
-            "name": "test",
-            "new_field": "from_template"
-          }
-        JSON
-      end
-
-      let(:dest_json) do
-        <<~JSON
-          {
-            "name": "test"
-          }
-        JSON
-      end
-
-      it "adds nodes only present in template" do
-        template_analysis = Json::Merge::FileAnalysis.new(template_json)
-        dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
-
-        skip "FileAnalysis not valid" unless template_analysis.valid? && dest_analysis.valid?
-
-        resolver = described_class.new(
-          template_analysis,
-          dest_analysis,
-          add_template_only_nodes: true,
-        )
-        result = Json::Merge::MergeResult.new
-        resolver.resolve(result)
-
-        # Should include the template-only field
-        content = result.to_json
-        expect(content).to include("new_field")
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
-      end
-
-      it "skips template-only nodes when disabled" do
-        template_analysis = Json::Merge::FileAnalysis.new(template_json)
-        dest_analysis = Json::Merge::FileAnalysis.new(dest_json)
-
-        skip "FileAnalysis not valid" unless template_analysis.valid? && dest_analysis.valid?
-
-        resolver = described_class.new(
-          template_analysis,
-          dest_analysis,
-          add_template_only_nodes: false,
-        )
-        result = Json::Merge::MergeResult.new
-        resolver.resolve(result)
-
-        # Should NOT include the template-only field
-        content = result.to_json
-        expect(content).not_to include("new_field")
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
       end
     end
   end
 
-  describe "branch coverage for edge cases" do
+  describe "branch coverage for edge cases", :json_grammar do
     describe "#build_signature_map" do
       it "handles statements with nil signatures" do
         # Create analysis with valid JSON
@@ -366,8 +344,6 @@ RSpec.describe Json::Merge::ConflictResolver do
         result = Json::Merge::MergeResult.new
         # Resolve should work even if some signatures are nil
         expect { resolver.resolve(result) }.not_to raise_error
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -386,8 +362,6 @@ RSpec.describe Json::Merge::ConflictResolver do
         result = Json::Merge::MergeResult.new
         # Should handle various statement types gracefully
         expect { resolver.resolve(result) }.not_to raise_error
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
@@ -409,8 +383,6 @@ RSpec.describe Json::Merge::ConflictResolver do
         content = result.to_json
         # Should have the shared key
         expect(content).to include("shared")
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
       end
 
       it "handles destination-only statements" do
@@ -430,12 +402,10 @@ RSpec.describe Json::Merge::ConflictResolver do
         # Should have dest_only but not template_only
         expect(content).to include("dest_only")
         expect(content).not_to include("template_only")
-      rescue Json::Merge::ParseError => e
-        skip "tree-sitter parser not available: #{e.message}"
       end
     end
 
-    context "with template preference merging leaf nodes", :tree_sitter_json do
+    context "with template preference merging leaf nodes" do
       let(:template_with_different_values) do
         <<~JSON
           {
@@ -475,7 +445,7 @@ RSpec.describe Json::Merge::ConflictResolver do
       end
     end
 
-    context "with container nodes (nested objects)", :tree_sitter_json do
+    context "with container nodes (nested objects)" do
       let(:template_with_nested) do
         <<~JSON
           {
@@ -538,7 +508,7 @@ RSpec.describe Json::Merge::ConflictResolver do
       end
     end
 
-    context "with match_refiner", :tree_sitter_json do
+    context "with match_refiner" do
       let(:template_with_key) do
         <<~JSON
           {
@@ -592,7 +562,7 @@ RSpec.describe Json::Merge::ConflictResolver do
       end
     end
 
-    context "with empty match_refiner result", :tree_sitter_json do
+    context "with empty match_refiner result" do
       it "handles empty refined matches" do
         template_analysis = Json::Merge::FileAnalysis.new(template_json)
         dest_analysis = Json::Merge::FileAnalysis.new(dest_json)

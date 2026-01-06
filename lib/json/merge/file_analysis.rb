@@ -121,25 +121,25 @@ module Json
       private
 
       def parse_json
-        begin
-          # Use TreeHaver's high-level API - it handles:
-          # - Grammar auto-discovery
-          # - Backend selection
-          parser = TreeHaver.parser_for(:json, library_path: @parser_path)
+        # Use TreeHaver's high-level API - it handles:
+        # - Grammar auto-discovery
+        # - Backend selection
+        parser = TreeHaver.parser_for(:json, library_path: @parser_path)
 
-          @ast = parser.parse(@source)
+        @ast = parser.parse(@source)
 
-          # Check for parse errors in the tree
-          if @ast&.root_node&.has_error?
-            collect_parse_errors(@ast.root_node)
-          end
-        rescue TreeHaver::NotAvailable => e
-          @errors << e.message
-          @ast = nil
-        rescue StandardError => e
-          @errors << e
-          @ast = nil
+        # Check for parse errors in the tree
+        if @ast&.root_node&.has_error?
+          collect_parse_errors(@ast.root_node)
         end
+      rescue TreeHaver::Error => e
+        # TreeHaver::Error inherits from Exception, not StandardError.
+        # This also catches TreeHaver::NotAvailable (subclass of Error).
+        @errors << e.message
+        @ast = nil
+      rescue StandardError => e
+        @errors << e
+        @ast = nil
       end
 
       def collect_parse_errors(node)

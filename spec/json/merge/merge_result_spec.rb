@@ -170,7 +170,7 @@ RSpec.describe Json::Merge::MergeResult do
     end
   end
 
-  describe "#add_node edge cases" do
+  describe "#add_node edge cases", :json_grammar do
     it "returns early when node has nil start_line" do
       # Create a mock-like object that returns nil for start_line
       json = '{"key": "value"}'
@@ -182,8 +182,48 @@ RSpec.describe Json::Merge::MergeResult do
       initial_count = result.lines.size
       result.add_node(node, decision: :kept_destination, source: :destination, analysis: analysis)
       expect(result.lines.size).to be >= initial_count
-    rescue Json::Merge::ParseError => e
-      skip "Parser not available: #{e.message}"
+    end
+
+    it "skips nodes without start_line" do
+      analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
+      skip "Parser not available" unless analysis.valid?
+
+      # Create a mock node without start_line
+      mock_node = double("node")
+      allow(mock_node).to receive_messages(start_line: nil, end_line: 1)
+
+      initial_line_count = result.lines.length
+      result.add_node(mock_node, decision: :kept, source: :template, analysis: analysis)
+      # Should not add any lines since start_line is nil
+      expect(result.lines.length).to eq(initial_line_count)
+    end
+
+    it "skips nodes without end_line" do
+      analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
+      skip "Parser not available" unless analysis.valid?
+
+      # Create a mock node without end_line
+      mock_node = double("node")
+      allow(mock_node).to receive_messages(start_line: 1, end_line: nil)
+
+      initial_line_count = result.lines.length
+      result.add_node(mock_node, decision: :kept, source: :template, analysis: analysis)
+      # Should not add any lines since end_line is nil
+      expect(result.lines.length).to eq(initial_line_count)
+    end
+
+    it "skips lines that are nil from analysis" do
+      analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
+      skip "Parser not available" unless analysis.valid?
+
+      # Create a mock node with out-of-range lines
+      mock_node = double("node")
+      allow(mock_node).to receive_messages(start_line: 1000, end_line: 1001)
+
+      initial_line_count = result.lines.length
+      result.add_node(mock_node, decision: :kept, source: :template, analysis: analysis)
+      # Should not add any lines since line_at returns nil for out-of-range
+      expect(result.lines.length).to eq(initial_line_count)
     end
   end
 
@@ -256,59 +296,6 @@ RSpec.describe Json::Merge::MergeResult do
     it "returns same result as to_json" do
       result.add_line("test", decision: :merged, source: :merged)
       expect(result.content).to eq(result.to_json)
-    end
-  end
-
-  describe "#add_node edge cases" do
-    it "skips nodes without start_line" do
-      analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
-      skip "Parser not available" unless analysis.valid?
-
-      # Create a mock node without start_line
-      mock_node = double("node")
-      allow(mock_node).to receive(:start_line).and_return(nil)
-      allow(mock_node).to receive(:end_line).and_return(1)
-
-      initial_line_count = result.lines.length
-      result.add_node(mock_node, decision: :kept, source: :template, analysis: analysis)
-      # Should not add any lines since start_line is nil
-      expect(result.lines.length).to eq(initial_line_count)
-    rescue Json::Merge::ParseError => e
-      skip "tree-sitter parser not available: #{e.message}"
-    end
-
-    it "skips nodes without end_line" do
-      analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
-      skip "Parser not available" unless analysis.valid?
-
-      # Create a mock node without end_line
-      mock_node = double("node")
-      allow(mock_node).to receive(:start_line).and_return(1)
-      allow(mock_node).to receive(:end_line).and_return(nil)
-
-      initial_line_count = result.lines.length
-      result.add_node(mock_node, decision: :kept, source: :template, analysis: analysis)
-      # Should not add any lines since end_line is nil
-      expect(result.lines.length).to eq(initial_line_count)
-    rescue Json::Merge::ParseError => e
-      skip "tree-sitter parser not available: #{e.message}"
-    end
-
-    it "skips lines that are nil from analysis" do
-      analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
-      skip "Parser not available" unless analysis.valid?
-
-      # Create a mock node with out-of-range lines
-      mock_node = double("node")
-      allow(mock_node).to receive(:start_line).and_return(1000)
-      allow(mock_node).to receive(:end_line).and_return(1001)
-
-      initial_line_count = result.lines.length
-      result.add_node(mock_node, decision: :kept, source: :template, analysis: analysis)
-      # Should not add any lines since line_at returns nil for out-of-range
-      expect(result.lines.length).to eq(initial_line_count)
-    rescue Json::Merge::ParseError => e
-      skip "tree-sitter parser not available: #{e.message}"
     end
   end
 end

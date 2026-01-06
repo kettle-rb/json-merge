@@ -53,7 +53,7 @@ RSpec.describe Json::Merge::SmartMerger do
     end
   end
 
-  describe "#merge", :tree_sitter_json do
+  describe "#merge", :json_grammar do
     it "returns a MergeResult" do
       merger = described_class.new(template_json, dest_json)
       result = merger.merge_result
@@ -97,7 +97,7 @@ RSpec.describe Json::Merge::SmartMerger do
     end
   end
 
-  describe "error handling", :tree_sitter_json do
+  describe "error handling", :json_grammar do
     it "raises TemplateParseError for invalid template" do
       expect {
         described_class.new("{ invalid", dest_json)
@@ -130,11 +130,10 @@ RSpec.describe Json::Merge::SmartMerger do
   end
 
   # Tests that run when tree-sitter-json is NOT available
-  describe "without parser", :not_tree_sitter_json do
+  describe "without parser", :not_json_grammar do
     it "handles missing parser gracefully" do
       merger = described_class.new(template_json, dest_json)
       expect(merger.template_analysis.valid?).to be false
     end
   end
 end
-

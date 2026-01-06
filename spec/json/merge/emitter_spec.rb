@@ -155,6 +155,17 @@ RSpec.describe Json::Merge::Emitter do
       emitter.clear
       expect(emitter.indent_level).to eq(0)
     end
+
+    it "resets needs_comma flag" do
+      emitter = described_class.new
+      emitter.emit_pair("key", '"value"')
+      emitter.clear
+      # After clear, needs_comma should be false
+      emitter.emit_object_start
+      emitter.emit_pair("new", '"value"')
+      # First pair should not have comma before it
+      expect(emitter.lines[1]).not_to start_with(",")
+    end
   end
 
   describe "#emit_comment with inline option" do
@@ -255,6 +266,14 @@ RSpec.describe Json::Merge::Emitter do
     it "returns empty string for no lines" do
       emitter = described_class.new
       expect(emitter.to_json).to eq("")
+    end
+
+    it "does not double newline if content already ends with newline" do
+      emitter = described_class.new
+      emitter.emit_pair("key", '"value"')
+      result = emitter.to_json
+      expect(result).to end_with("\n")
+      expect(result).not_to end_with("\n\n")
     end
   end
 
@@ -412,19 +431,6 @@ RSpec.describe Json::Merge::Emitter do
     end
   end
 
-  describe "#clear" do
-    it "resets needs_comma flag" do
-      emitter = described_class.new
-      emitter.emit_pair("key", '"value"')
-      emitter.clear
-      # After clear, needs_comma should be false
-      emitter.emit_object_start
-      emitter.emit_pair("new", '"value"')
-      # First pair should not have comma before it
-      expect(emitter.lines[1]).not_to start_with(",")
-    end
-  end
-
   describe "complex JSON structures" do
     it "builds valid nested structure" do
       emitter = described_class.new
@@ -441,47 +447,6 @@ RSpec.describe Json::Merge::Emitter do
       expect(result).to include('"name": "test"')
       expect(result).to include('"items"')
       expect(result).to include('"id": 1')
-    end
-  end
-
-  describe "#emit_comment inline mode" do
-    it "appends inline comment to last line" do
-      emitter = described_class.new
-      emitter.emit_pair("key", '"value"')
-      emitter.emit_comment("inline note", inline: true)
-      expect(emitter.lines.last).to include("// inline note")
-    end
-
-    it "does nothing for inline comment when lines are empty" do
-      emitter = described_class.new
-      emitter.emit_comment("inline", inline: true)
-      expect(emitter.lines).to be_empty
-    end
-  end
-
-  describe "#emit_leading_comments" do
-    it "emits block comments with indent" do
-      emitter = described_class.new
-      comments = [{text: "block comment", block: true, indent: 2}]
-      emitter.emit_leading_comments(comments)
-      expect(emitter.lines.first).to include("/*")
-      expect(emitter.lines.first).to include("block comment")
-      expect(emitter.lines.first).to include("*/")
-    end
-
-    it "emits line comments with indent" do
-      emitter = described_class.new
-      comments = [{text: "line comment", block: false, indent: 4}]
-      emitter.emit_leading_comments(comments)
-      expect(emitter.lines.first).to include("// line comment")
-      expect(emitter.lines.first).to start_with("    ")
-    end
-
-    it "handles comments without indent" do
-      emitter = described_class.new
-      comments = [{text: "no indent", block: false}]
-      emitter.emit_leading_comments(comments)
-      expect(emitter.lines.first).to eq("// no indent")
     end
   end
 
@@ -514,25 +479,7 @@ RSpec.describe Json::Merge::Emitter do
       first_line = emitter.lines.last
       expect(first_line.rstrip).to end_with("[")
     end
-  end
 
-  describe "#to_json edge cases" do
-    it "returns empty string with newline for empty emitter" do
-      emitter = described_class.new
-      result = emitter.to_json
-      expect(result).to eq("")
-    end
-
-    it "does not double newline if content already ends with newline" do
-      emitter = described_class.new
-      emitter.emit_pair("key", '"value"')
-      result = emitter.to_json
-      expect(result).to end_with("\n")
-      expect(result).not_to end_with("\n\n")
-    end
-  end
-
-  describe "#add_comma_if_needed edge cases" do
     it "does not add comma when lines array is empty" do
       emitter = described_class.new
       # Force needs_comma to true by starting something

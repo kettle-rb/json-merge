@@ -26,7 +26,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     JSON
   end
 
-  describe "#initialize", :tree_sitter_json do
+  describe "#initialize", :json_grammar do
     it "returns a FileAnalysis instance" do
       result = described_class.new(simple_json)
       expect(result).to be_a(described_class)
@@ -39,14 +39,14 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#statements", :tree_sitter_json do
+  describe "#statements", :json_grammar do
     it "returns an array of statements" do
       analysis = described_class.new(simple_json)
       expect(analysis.statements).to be_an(Array)
     end
   end
 
-  describe "#lines", :tree_sitter_json do
+  describe "#lines", :json_grammar do
     it "returns the content split into lines" do
       analysis = described_class.new(simple_json)
       expect(analysis.lines).to be_an(Array)
@@ -54,7 +54,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#line_at", :tree_sitter_json do
+  describe "#line_at", :json_grammar do
     it "returns the line at the given 1-based index" do
       analysis = described_class.new(simple_json)
       expect(analysis.line_at(1)).to eq("{")
@@ -66,7 +66,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#generate_signature", :tree_sitter_json do
+  describe "#generate_signature", :json_grammar do
     it "generates a signature for statements" do
       analysis = described_class.new(complex_json)
       statement = analysis.statements.first
@@ -78,14 +78,14 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#valid?", :tree_sitter_json do
+  describe "#valid?", :json_grammar do
     it "returns true for valid JSON" do
       analysis = described_class.new(simple_json)
       expect(analysis.valid?).to be true
     end
   end
 
-  describe "#root_node", :tree_sitter_json do
+  describe "#root_node", :json_grammar do
     it "returns the root node" do
       analysis = described_class.new(simple_json)
       root = analysis.root_node
@@ -102,7 +102,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#root_object", :tree_sitter_json do
+  describe "#root_object", :json_grammar do
     it "returns the root object" do
       analysis = described_class.new(simple_json)
       obj = analysis.root_object
@@ -122,7 +122,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#root_pairs", :tree_sitter_json do
+  describe "#root_pairs", :json_grammar do
     it "returns pairs from root object" do
       analysis = described_class.new(simple_json)
       pairs = analysis.root_pairs
@@ -142,7 +142,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#normalized_line", :tree_sitter_json do
+  describe "#normalized_line", :json_grammar do
     it "returns stripped line content" do
       analysis = described_class.new(simple_json)
       line = analysis.normalized_line(2)
@@ -158,7 +158,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#fallthrough_node?", :tree_sitter_json do
+  describe "#fallthrough_node?", :json_grammar do
     it "returns true for NodeWrapper instances" do
       analysis = described_class.new(simple_json)
       node = analysis.root_object
@@ -175,7 +175,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "custom signature generator", :tree_sitter_json do
+  describe "custom signature generator", :json_grammar do
     it "uses custom signature generator when provided" do
       custom_gen = ->(statement) { [:custom, statement.class.name] }
       analysis = described_class.new(simple_json, signature_generator: custom_gen)
@@ -247,7 +247,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "edge cases", :tree_sitter_json do
+  describe "edge cases", :json_grammar do
     it "handles empty JSON object" do
       analysis = described_class.new("{}")
       expect(analysis.valid?).to be true
@@ -272,7 +272,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "compute_node_signature", :tree_sitter_json do
+  describe "compute_node_signature", :json_grammar do
     it "returns nil for non-NodeWrapper" do
       analysis = described_class.new(simple_json)
       sig = analysis.generate_signature("not a node")
@@ -280,7 +280,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#integrate_nodes", :tree_sitter_json do
+  describe "#integrate_nodes", :json_grammar do
     it "skips pairs without line info" do
       analysis = described_class.new(simple_json)
       expect(analysis.statements).to be_an(Array)
@@ -290,7 +290,7 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 
-  describe "#root_object_open_line", :tree_sitter_json do
+  describe "#root_object_open_line", :json_grammar do
     it "returns the opening brace line for objects" do
       json = "{\n  \"key\": \"value\"\n}"
       analysis = described_class.new(json)
@@ -307,13 +307,13 @@ RSpec.describe Json::Merge::FileAnalysis do
       json = "{}"
       analysis = described_class.new(json)
       obj = analysis.root_object
-      if obj && obj.start_line
+      if obj&.start_line
         expect(analysis.root_object_open_line).not_to be_nil
       end
     end
   end
 
-  describe "#root_object_close_line", :tree_sitter_json do
+  describe "#root_object_close_line", :json_grammar do
     it "returns the closing brace line for objects" do
       json = "{\n  \"key\": \"value\"\n}"
       analysis = described_class.new(json)
@@ -327,4 +327,3 @@ RSpec.describe Json::Merge::FileAnalysis do
     end
   end
 end
-

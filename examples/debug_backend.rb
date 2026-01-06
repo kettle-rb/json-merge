@@ -33,29 +33,27 @@ puts "-" * 70
 
 backends = [:mri, :rust, :ffi, :java, :citrus, :prism, :psych, :commonmarker, :markly]
 backends.each do |backend_name|
-  begin
-    mod = case backend_name
-    when :mri then TreeHaver::Backends::MRI
-    when :rust then TreeHaver::Backends::Rust
-    when :ffi then TreeHaver::Backends::FFI
-    when :java then TreeHaver::Backends::Java
-    when :citrus then TreeHaver::Backends::Citrus
-    when :prism then TreeHaver::Backends::Prism
-    when :psych then TreeHaver::Backends::Psych
-    when :commonmarker then TreeHaver::Backends::Commonmarker
-    when :markly then TreeHaver::Backends::Markly
-    end
-
-    if mod
-      available = mod.respond_to?(:available?) ? mod.available? : "no available? method"
-      caps = mod.respond_to?(:capabilities) ? mod.capabilities : {}
-      puts "  #{backend_name}: available=#{available}, capabilities=#{caps.inspect}"
-    else
-      puts "  #{backend_name}: module not defined"
-    end
-  rescue => e
-    puts "  #{backend_name}: ERROR - #{e.class}: #{e.message}"
+  mod = case backend_name
+  when :mri then TreeHaver::Backends::MRI
+  when :rust then TreeHaver::Backends::Rust
+  when :ffi then TreeHaver::Backends::FFI
+  when :java then TreeHaver::Backends::Java
+  when :citrus then TreeHaver::Backends::Citrus
+  when :prism then TreeHaver::Backends::Prism
+  when :psych then TreeHaver::Backends::Psych
+  when :commonmarker then TreeHaver::Backends::Commonmarker
+  when :markly then TreeHaver::Backends::Markly
   end
+
+  if mod
+    available = mod.respond_to?(:available?) ? mod.available? : "no available? method"
+    caps = mod.respond_to?(:capabilities) ? mod.capabilities : {}
+    puts "  #{backend_name}: available=#{available}, capabilities=#{caps.inspect}"
+  else
+    puts "  #{backend_name}: module not defined"
+  end
+rescue => e
+  puts "  #{backend_name}: ERROR - #{e.class}: #{e.message}"
 end
 puts
 
@@ -151,4 +149,3 @@ puts
 puts "=" * 70
 puts "Debug complete"
 puts "=" * 70
-

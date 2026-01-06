@@ -82,12 +82,16 @@ Gem::Specification.new do |spec|
   spec.executables = []
 
   # Parser - tree_haver provides unified tree-sitter & citrus interface
-  spec.add_dependency("tree_haver", "~> 3.0")                           # ruby >= 3.2.0
+  spec.add_dependency("tree_haver", "~> 3.2", ">= 3.2.5")                           # ruby >= 3.2.0
   # NOTE: tree-sitter-json parser must be installed separately via your package manager
   #       e.g., `apt install libtree-sitter-json-dev` or built from source
+  # A ruby interface for tree-sitter must also be installed (pick ONE):
+  # - ruby_tree_sitter (MRI only; recommended for MRI users)
+  # - tree_stump (Rust-based; MRI, and maybe JRuby)
+  # - ffi (MRI, JRuby, TruffleRuby; utilizes tree_haver's ffi backend)
 
   # Shared merge infrastructure
-  spec.add_dependency("ast-merge", "~> 1.0")                            # ruby >= 3.2.0
+  spec.add_dependency("ast-merge", "~> 3.0", ">= 3.0.0")                # ruby >= 3.2.0
 
   # Utilities
   spec.add_dependency("version_gem", "~> 1.1", ">= 1.1.9")              # ruby >= 2.2.0

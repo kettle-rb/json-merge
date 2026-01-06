@@ -225,7 +225,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "#match_array_objects", :tree_sitter_json do
+  describe "#match_array_objects", :json_grammar do
     let(:template_json) { <<~JSON }
       [
         {"id": 1, "name": "Alice"},
@@ -270,7 +270,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "#compute_object_similarity", :tree_sitter_json do
+  describe "#compute_object_similarity", :json_grammar do
     let(:template_json) { '{"a": 1, "b": 2}' }
     let(:dest_json) { '{"a": 1, "c": 3}' }
 
@@ -278,8 +278,8 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     let(:dest_analysis) { Json::Merge::FileAnalysis.new(dest_json) }
 
     it "returns 1.0 when both objects are empty" do
-      t_json = '{}'
-      d_json = '{}'
+      t_json = "{}"
+      d_json = "{}"
       t_analysis = Json::Merge::FileAnalysis.new(t_json)
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
@@ -291,7 +291,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
 
     it "returns 0.0 when template is empty but dest has keys" do
-      t_json = '{}'
+      t_json = "{}"
       d_json = '{"key": "value"}'
       t_analysis = Json::Merge::FileAnalysis.new(t_json)
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
@@ -305,7 +305,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
 
     it "returns 0.0 when dest is empty but template has keys" do
       t_json = '{"key": "value"}'
-      d_json = '{}'
+      d_json = "{}"
       t_analysis = Json::Merge::FileAnalysis.new(t_json)
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
@@ -339,7 +339,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "#value_similarity", :tree_sitter_json do
+  describe "#value_similarity", :json_grammar do
     it "returns 0.5 when template value is nil" do
       score = refiner.send(:value_similarity, nil, double("value"))
       expect(score).to eq(0.5)
@@ -363,7 +363,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       root = analysis.root_object
       skip "No root" unless root
       pairs = root.pairs
-      skip "Not enough pairs" unless pairs.size >= 2
+      skip "Not enough pairs" if pairs.size < 2
       t_val = pairs[0].value_node
       d_val = pairs[1].value_node
       skip "No values" unless t_val && d_val
@@ -426,7 +426,7 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
     end
   end
 
-  describe "#array_similarity", :tree_sitter_json do
+  describe "#array_similarity", :json_grammar do
     it "returns 1.0 when both arrays are empty" do
       t_json = '{"arr": []}'
       d_json = '{"arr": []}'
