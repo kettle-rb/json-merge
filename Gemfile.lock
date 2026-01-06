@@ -322,7 +322,7 @@ GEM
     stringio (3.2.0-java)
     terminal-table (4.0.0)
       unicode-display_width (>= 1.1.1, < 4)
-    thor (1.4.0)
+    thor (1.5.0)
     timecop (0.9.10)
     timecop-rspec (1.0.3)
       delegate (~> 0.1)
@@ -517,7 +517,7 @@ CHECKSUMS
   stringio (3.2.0) sha256=c37cb2e58b4ffbd33fe5cd948c05934af997b36e0b6ca6fdf43afa234cf222e1
   stringio (3.2.0-java) sha256=55fff26a7c5062f5def0cc5868414dfa99b9f0463dd5cd6904e63bdc259f4e07
   terminal-table (4.0.0) sha256=f504793203f8251b2ea7c7068333053f0beeea26093ec9962e62ea79f94301d2
-  thor (1.4.0) sha256=8763e822ccb0f1d7bee88cde131b19a65606657b847cc7b7b4b82e772bcd8a3d
+  thor (1.5.0) sha256=e3a9e55fe857e44859ce104a84675ab6e8cd59c650a49106a05f55f136425e73
   timecop (0.9.10) sha256=12ba45ce57cdcf6b1043cb6cdffa6381fd89ce10d369c28a7f6f04dc1b0cd8eb
   timecop-rspec (1.0.3) sha256=005f14841bb606dcaefb060e321b5388e2e59537742bee8b3a9a9a40e598fab9
   tree_haver (3.2.6) sha256=0c7a07a260bcbaea05a61671af84e36b8e6166379b6abae5def154f643487d4e
