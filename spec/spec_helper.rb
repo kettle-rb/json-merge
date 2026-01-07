@@ -29,6 +29,9 @@ require "json/merge"
 # NOTE: Loaded after json/merge so TreeHaver is available for dependency checks
 Dir[File.join(__dir__, "support", "**", "*.rb")].each { |f| require f }
 
+# Load shared examples
+Dir[File.join(__dir__, "support", "shared_examples", "**", "*.rb")].sort.each { |f| require f }
+
 # Register JSON grammar for TreeHaver if available
 # This is required for tests that use TreeHaver to parse JSON
 begin

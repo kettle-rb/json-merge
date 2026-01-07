@@ -1,139 +1,109 @@
 # frozen_string_literal: true
 
-RSpec.describe Json::Merge::SmartMerger, :json_grammar do
-  let(:template_json) do
-    <<~JSON
-      {
-        "name": "template-package",
-        "version": "2.0.0",
-        "description": "A template package",
-        "dependencies": {
-          "lodash": "^4.18.0"
-        }
-      }
-    JSON
+# SmartMerger specs with explicit backend testing
+#
+# This spec file tests SmartMerger behavior across all available tree-sitter backends:
+# - :mri (via ruby_tree_sitter gem, tagged :mri_backend)
+# - :ffi (via FFI bindings, tagged :ffi_backend)
+# - :rust (via tree_stump gem, tagged :rust_backend)
+# - :java (via jtreesitter, tagged :java_backend)
+#
+# We define shared examples that are parameterized, then include them in
+# backend-specific contexts.
+
+RSpec.describe Json::Merge::SmartMerger do
+  # ============================================================
+  # :auto backend tests (uses whatever is available)
+  # ============================================================
+
+  context "with :auto backend", :json_grammar do
+    it_behaves_like "basic initialization"
+    it_behaves_like "basic merge operation"
+    it_behaves_like "template preference"
+    it_behaves_like "add template-only nodes"
+    it_behaves_like "destination-only nodes preservation"
+    it_behaves_like "invalid template detection"
+    it_behaves_like "invalid destination detection"
   end
 
-  let(:dest_json) do
-    <<~JSON
-      {
-        "name": "my-package",
-        "version": "1.0.0",
-        "dependencies": {
-          "lodash": "^4.17.21",
-          "express": "^4.18.0"
-        },
-        "custom": "my-value"
-      }
-    JSON
-  end
+  # ============================================================
+  # Backend-aware tests - MRI/ruby_tree_sitter
+  # ============================================================
 
-  describe "#initialize" do
-    it "creates a merger with content" do
-      merger = described_class.new(template_json, dest_json)
-      expect(merger.template_content).to eq(template_json)
-      expect(merger.dest_content).to eq(dest_json)
-    end
-
-    it "accepts options" do
-      merger = described_class.new(
-        template_json,
-        dest_json,
-        preference: :template,
-        add_template_only_nodes: true,
-      )
-      expect(merger.options[:preference]).to eq(:template)
-      expect(merger.options[:add_template_only_nodes]).to be true
-    end
-
-    it "has default options" do
-      merger = described_class.new(template_json, dest_json)
-      expect(merger.options[:preference]).to eq(:destination)
-      expect(merger.options[:add_template_only_nodes]).to be false
-    end
-  end
-
-  describe "#merge" do
-    it "returns a MergeResult" do
-      merger = described_class.new(template_json, dest_json)
-      result = merger.merge_result
-      expect(result).to be_a(Json::Merge::MergeResult)
-    end
-
-    it "produces a result with lines" do
-      merger = described_class.new(template_json, dest_json)
-      result = merger.merge_result
-      expect(result).to respond_to(:lines)
-    end
-
-    it "preserves destination customizations by default" do
-      merger = described_class.new(template_json, dest_json)
-      result = merger.merge_result
-      expect(result.to_json).to include("custom")
-    end
-
-    context "with template preference" do
-      it "uses template values for matches" do
-        merger = described_class.new(
-          template_json,
-          dest_json,
-          preference: :template,
-        )
-        result = merger.merge_result
-        expect(result).to be_a(Json::Merge::MergeResult)
+  context "with MRI backend", :mri_backend, :json_grammar do
+    around do |example|
+      TreeHaver.with_backend(:mri) do
+        example.run
       end
     end
 
-    context "with add_template_only_nodes enabled" do
-      it "adds template-only nodes" do
-        merger = described_class.new(
-          template_json,
-          dest_json,
-          add_template_only_nodes: true,
-        )
-        result = merger.merge_result
-        expect(result.to_json).to include("description")
-      end
-    end
+    it_behaves_like "basic initialization"
+    it_behaves_like "basic merge operation"
+    it_behaves_like "template preference"
+    it_behaves_like "add template-only nodes"
+    it_behaves_like "destination-only nodes preservation"
+    it_behaves_like "invalid template detection"
+    it_behaves_like "invalid destination detection"
   end
 
-  describe "error handling", :json_grammar do
-    it "raises TemplateParseError for invalid template" do
-      expect {
-        described_class.new("{ invalid", dest_json)
-      }.to raise_error(Json::Merge::TemplateParseError)
-    end
+  # ============================================================
+  # Backend-aware tests - FFI
+  # ============================================================
 
-    it "raises DestinationParseError for invalid destination" do
-      expect {
-        described_class.new(template_json, "{ also invalid")
-      }.to raise_error(Json::Merge::DestinationParseError)
-    end
-
-    it "includes error details in TemplateParseError" do
-      expect {
-        described_class.new("{ invalid json }", dest_json)
-      }.to raise_error(Json::Merge::TemplateParseError) do |error|
-        expect(error.message).to include("ERROR")
-        expect(error.content).to eq("{ invalid json }")
+  context "with FFI backend", :ffi_backend, :json_grammar do
+    around do |example|
+      TreeHaver.with_backend(:ffi) do
+        example.run
       end
     end
 
-    it "includes error details in DestinationParseError" do
-      expect {
-        described_class.new(template_json, "not json at all")
-      }.to raise_error(Json::Merge::DestinationParseError) do |error|
-        expect(error.message).to include("ERROR")
-        expect(error.content).to eq("not json at all")
-      end
-    end
+    it_behaves_like "basic initialization"
+    it_behaves_like "basic merge operation"
+    it_behaves_like "template preference"
+    it_behaves_like "add template-only nodes"
+    it_behaves_like "destination-only nodes preservation"
+    it_behaves_like "invalid template detection"
+    it_behaves_like "invalid destination detection"
   end
 
-  # Tests that run when tree-sitter-json is NOT available
-  describe "without parser", :not_json_grammar do
-    it "handles missing parser gracefully" do
-      merger = described_class.new(template_json, dest_json)
-      expect(merger.template_analysis.valid?).to be false
+  # ============================================================
+  # Backend-aware tests - Rust/tree_stump
+  # ============================================================
+
+  context "with Rust backend", :rust_backend, :json_grammar do
+    around do |example|
+      TreeHaver.with_backend(:rust) do
+        example.run
+      end
     end
+
+    it_behaves_like "basic initialization"
+    it_behaves_like "basic merge operation"
+    it_behaves_like "template preference"
+    it_behaves_like "add template-only nodes"
+    it_behaves_like "destination-only nodes preservation"
+    it_behaves_like "invalid template detection"
+    it_behaves_like "invalid destination detection"
+  end
+
+  # ============================================================
+  # Backend-aware tests - Java/jtreesitter
+  # ============================================================
+
+  context "with Java backend", :java_backend, :json_grammar do
+    around do |example|
+      TreeHaver.with_backend(:java) do
+        example.run
+      end
+    end
+
+    it_behaves_like "basic initialization"
+    it_behaves_like "basic merge operation"
+    it_behaves_like "template preference"
+    it_behaves_like "add template-only nodes"
+    it_behaves_like "destination-only nodes preservation"
+    it_behaves_like "invalid template detection"
+    it_behaves_like "invalid destination detection"
   end
 end
+
