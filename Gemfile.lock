@@ -34,7 +34,7 @@ GIT
 PATH
   remote: .
   specs:
-    json-merge (1.0.0)
+    json-merge (1.1.0)
       ast-merge (~> 3.1, >= 3.1.0)
       tree_haver (~> 4.0, >= 4.0.5)
       version_gem (~> 1.1, >= 1.1.9)
@@ -437,7 +437,7 @@ CHECKSUMS
   jar-dependencies (0.5.5) sha256=2972b9fcba4b014e6446a84b5c09674a3e8648b95b71768e729f0e8e40568059
   json (2.18.0) sha256=b10506aee4183f5cf49e0efc48073d7b75843ce3782c68dbeb763351c08fd505
   json (2.18.0-java) sha256=74706f684baeb1a40351ed26fc8fe6e958afa861320d1c28ff4eb7073b29c7aa
-  json-merge (1.0.0)
+  json-merge (1.1.0)
   kettle-dev (1.2.4) sha256=71373c67fe7eb0a9656e70dfd10cf226a15083b6d1be18dafcb5360f21ee98b6
   kettle-soup-cover (1.1.1) sha256=2303885a9d8485d8d43cb250bcf73570f6b6fb997526beeaef3ef54e3501d445
   kettle-test (1.0.7) sha256=16fcb8b1bc12366f443d0ec9d125c1865249865c7afff7ef856e602436d4cdc7

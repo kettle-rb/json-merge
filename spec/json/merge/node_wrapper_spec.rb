@@ -395,8 +395,8 @@ RSpec.describe Json::Merge::NodeWrapper do
         skip "No root object" unless root
         sig = root.signature
         expect(sig).to be_an(Array)
-        expect(sig.first).to eq(:object)
-        expect(sig[1]).to eq(["a", "b"])
+        # Root-level objects get :root_object signature (no keys - they always match)
+        expect(sig.first).to eq(:root_object)
       end
     end
 
@@ -410,8 +410,8 @@ RSpec.describe Json::Merge::NodeWrapper do
         skip "No array node" unless array_node
         sig = array_node.signature
         expect(sig).to be_an(Array)
-        expect(sig.first).to eq(:array)
-        expect(sig[1]).to eq(3)
+        # Root-level arrays get :root_array signature (they always match)
+        expect(sig.first).to eq(:root_array)
       end
     end
 
@@ -745,9 +745,8 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_object
         skip "No root object" unless root
         sig = root.signature
-        expect(sig.first).to eq(:object)
-        # Keys should be sorted
-        expect(sig[1]).to eq(["a", "m", "z"])
+        # Root-level objects get :root_object signature (they always match)
+        expect(sig.first).to eq(:root_object)
       end
     end
   end
@@ -858,8 +857,8 @@ RSpec.describe Json::Merge::NodeWrapper do
       array_node = root.children.find(&:array?)
       skip "No array" unless array_node
       sig = array_node.signature
-      expect(sig.first).to eq(:array)
-      expect(sig[1]).to eq(5)
+      # Root-level arrays get :root_array signature
+      expect(sig.first).to eq(:root_array)
     end
 
     it "handles empty arrays" do
@@ -870,7 +869,8 @@ RSpec.describe Json::Merge::NodeWrapper do
       array_node = root.children.find(&:array?)
       skip "No array" unless array_node
       sig = array_node.signature
-      expect(sig).to eq([:array, 0])
+      # Root-level arrays get :root_array signature
+      expect(sig).to eq([:root_array])
     end
   end
 
@@ -1242,6 +1242,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         mock_node = double("object_node", type: "object")
         allow(mock_node).to receive(:respond_to?).with(:start_point).and_return(false)
         allow(mock_node).to receive(:respond_to?).with(:end_point).and_return(false)
+        allow(mock_node).to receive(:respond_to?).with(:parent).and_return(false)
         allow(mock_node).to receive(:each).and_yield(mock_pair)
 
         wrapper = described_class.new(mock_node, lines: ["{}"], source: "{}")
@@ -1258,6 +1259,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         mock_node = double("object_node", type: "object")
         allow(mock_node).to receive(:respond_to?).with(:start_point).and_return(false)
         allow(mock_node).to receive(:respond_to?).with(:end_point).and_return(false)
+        allow(mock_node).to receive(:respond_to?).with(:parent).and_return(false)
         allow(mock_node).to receive(:each).and_yield(mock_pair)
 
         wrapper = described_class.new(mock_node, lines: ["{}"], source: "{}")
@@ -1279,6 +1281,7 @@ RSpec.describe Json::Merge::NodeWrapper do
         mock_node = double("object_node", type: "object")
         allow(mock_node).to receive(:respond_to?).with(:start_point).and_return(false)
         allow(mock_node).to receive(:respond_to?).with(:end_point).and_return(false)
+        allow(mock_node).to receive(:respond_to?).with(:parent).and_return(false)
         allow(mock_node).to receive(:each).and_yield(mock_pair)
 
         wrapper = described_class.new(mock_node, lines: ["{}"], source: "{}")

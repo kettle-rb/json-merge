@@ -51,6 +51,10 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Fixed
 
+- **NodeWrapper signature tests**: Updated tests to expect `:root_object`/`:root_array` for root-level containers
+  - Root-level objects now correctly return `[:root_object, ...]` instead of `[:object, ...]`
+  - Root-level arrays now correctly return `[:root_array]` instead of `[:array, count]`
+  - Added `:parent` method stubs to mock node tests for `root_level_container?` compatibility
 - **ConflictResolver#emit_node**: Fixed handling of pair nodes with object values
   - When emitting a pair like `"features": {...}`, the value was treated as raw text
   - Now correctly detects when a pair's value is an object container
