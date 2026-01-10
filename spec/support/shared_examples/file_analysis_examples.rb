@@ -481,4 +481,3 @@ RSpec.shared_examples "integrate_nodes" do
     end
   end
 end
-

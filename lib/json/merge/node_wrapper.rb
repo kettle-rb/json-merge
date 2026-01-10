@@ -74,6 +74,7 @@ module Json
 
         # In JSON tree-sitter, pair has key and value children
         key_node = find_child_by_field("key")
+
         return unless key_node
 
         # Key is typically a string, extract its content without quotes using byte positions
@@ -88,6 +89,7 @@ module Json
         return unless pair?
 
         value = find_child_by_field("value")
+
         return unless value
 
         NodeWrapper.new(value, lines: @lines, source: @source)
@@ -146,6 +148,19 @@ module Json
       # @return [Boolean]
       def container?
         object? || array?
+      end
+
+      # Check if this is a root-level container (direct child of document)
+      # Root-level containers get a generic signature so they always match.
+      # @return [Boolean]
+      def root_level_container?
+        return false unless container?
+
+        # Check if parent is a document node
+        parent_node = @node.parent if @node.respond_to?(:parent)
+        return false unless parent_node
+
+        parent_node.type.to_s == "document"
       end
 
       # Get the opening line for a container node (the line with { or [)
@@ -226,14 +241,26 @@ module Json
           child_type = child&.type&.to_s
           [:document, child_type]
         when "object"
-          # Objects identified by their keys
-          keys = extract_object_keys(node)
-          [:object, keys.sort]
+          # For root-level objects (direct child of document), use a generic signature
+          # that always matches so merging happens at the pair level.
+          # This is critical for JSON merging - there's typically only one root object/array.
+          if root_level_container?
+            [:root_object]
+          else
+            # Nested objects identified by their keys
+            keys = extract_object_keys(node)
+            [:object, keys.sort]
+          end
         when "array"
-          # Arrays identified by their length and first few elements
-          elements_count = 0
-          node.each { |c| elements_count += 1 unless %w[comment , \[ \]].include?(c.type.to_s) }
-          [:array, elements_count]
+          # For root-level arrays (direct child of document), use a generic signature
+          if root_level_container?
+            [:root_array]
+          else
+            # Nested arrays identified by their length and first few elements
+            elements_count = 0
+            node.each { |c| elements_count += 1 unless %w[comment , \[ \]].include?(c.type.to_s) }
+            [:array, elements_count]
+          end
         when "pair"
           # Pairs identified by their key name
           key = key_name
@@ -267,6 +294,7 @@ module Json
           next unless child.type.to_s == "pair"
 
           key_node = child.respond_to?(:child_by_field_name) ? child.child_by_field_name("key") : nil
+
           next unless key_node
 
           key_text = node_text(key_node)&.gsub(/\A"|"\z/, "")

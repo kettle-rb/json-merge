@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "spec_helper"
+
 # Integration tests for SmartMerger with real JSON parsing and merging scenarios
 # Note: tree-sitter JSON parser does not support JSONC comments, so tests
 # that need valid parsing use strict JSON.

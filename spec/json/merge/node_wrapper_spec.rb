@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "spec_helper"
+
 RSpec.describe Json::Merge::NodeWrapper do
   # NodeWrapper requires a tree-sitter node, which requires parser availability
   # These tests use the actual parser when available

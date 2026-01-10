@@ -5,7 +5,7 @@
 The json-merge test suite is organized to test behavior across all available tree-sitter backends:
 
 - **MRI** - `ruby_tree_sitter` gem (C extension, MRI only)
-- **FFI** - FFI bindings to libtree-sitter  
+- **FFI** - FFI bindings to libtree-sitter
 - **Rust** - `tree_stump` gem (Rust extension via Magnus)
 - **Java** - `jtreesitter` (Java library for JRuby)
 
@@ -45,6 +45,7 @@ RSpec.shared_examples "valid JSON parsing" do |expected_backend:|
     # Test implementation
   end
 end
+
 ```
 
 Backend-specific contexts use `TreeHaver.with_backend` to select the backend:
@@ -56,7 +57,7 @@ context "with :auto backend", :json_grammar do
 end
 
 # Explicit backend selection
-context "with MRI backend", :mri_backend, :json_grammar do
+context "with MRI backend", :json_grammar, :mri_backend do
   around do |example|
     TreeHaver.with_backend(:mri) do
       example.run
@@ -65,6 +66,7 @@ context "with MRI backend", :mri_backend, :json_grammar do
 
   it_behaves_like "valid JSON parsing", expected_backend: :mri
 end
+
 ```
 
 ### RSpec Tags
@@ -128,7 +130,7 @@ Example:
 RSpec.shared_examples "new feature test" do
   it "does something" do
     result = analysis.new_feature
-    
+
     if result.nil?
       skip "Backend does not support new_feature"
     else
@@ -142,7 +144,7 @@ context "with :auto backend", :json_grammar do
   it_behaves_like "new feature test"
 end
 
-context "with MRI backend", :mri_backend, :json_grammar do
+context "with MRI backend", :json_grammar, :mri_backend do
   # ...existing code...
   it_behaves_like "new feature test"
 end

@@ -30,6 +30,7 @@ module Json
           match_refiner: match_refiner,
           **options
         )
+        @emitter = Emitter.new
       end
 
       protected
@@ -42,14 +43,24 @@ module Json
           template_statements = @template_analysis.statements
           dest_statements = @dest_analysis.statements
 
-          # Merge root-level statements (typically just the root object)
-          merge_node_lists(
+          # Clear emitter for fresh merge
+          @emitter.clear
+
+          # Merge root-level statements via emitter
+          merge_node_lists_to_emitter(
             template_statements,
             dest_statements,
             @template_analysis,
             @dest_analysis,
-            result,
           )
+
+          # Transfer emitter output to result
+          emitted_content = @emitter.to_s
+          unless emitted_content.empty?
+            emitted_content.lines.each do |line|
+              result.add_line(line.chomp, decision: MergeResult::DECISION_MERGED, source: :merged)
+            end
+          end
 
           DebugLogger.debug("Conflict resolution complete", {
             template_statements: template_statements.size,
@@ -61,13 +72,12 @@ module Json
 
       private
 
-      # Recursively merge two lists of nodes (tree-based merge)
+      # Recursively merge two lists of nodes, emitting to emitter
       # @param template_nodes [Array<NodeWrapper>] Template nodes
       # @param dest_nodes [Array<NodeWrapper>] Destination nodes
       # @param template_analysis [FileAnalysis] Template analysis for line access
       # @param dest_analysis [FileAnalysis] Destination analysis for line access
-      # @param result [MergeResult] Result to populate
-      def merge_node_lists(template_nodes, dest_nodes, template_analysis, dest_analysis, result)
+      def merge_node_lists_to_emitter(template_nodes, dest_nodes, template_analysis, dest_analysis)
         # Build signature maps for matching
         template_by_sig = build_signature_map(template_nodes, template_analysis)
         dest_by_sig = build_signature_map(dest_nodes, dest_analysis)
@@ -84,20 +94,13 @@ module Json
         dest_nodes.each do |dest_node|
           dest_sig = dest_analysis.generate_signature(dest_node)
 
-          # Freeze blocks from destination are always preserved
-          if freeze_node?(dest_node)
-            add_node_to_result(dest_node, result, :destination, MergeResult::DECISION_FREEZE_BLOCK, dest_analysis)
-            processed_dest_sigs << dest_sig if dest_sig
-            next
-          end
-
           # Check for signature match
           if dest_sig && template_by_sig[dest_sig]
             template_info = template_by_sig[dest_sig].first
             template_node = template_info[:node]
 
             # Both have this node - merge them (recursively if containers)
-            merge_matched_nodes(template_node, dest_node, template_analysis, dest_analysis, result)
+            merge_matched_nodes_to_emitter(template_node, dest_node, template_analysis, dest_analysis)
 
             processed_dest_sigs << dest_sig
             processed_template_sigs << dest_sig
@@ -107,13 +110,13 @@ module Json
             template_sig = template_analysis.generate_signature(template_node)
 
             # Merge matched nodes
-            merge_matched_nodes(template_node, dest_node, template_analysis, dest_analysis, result)
+            merge_matched_nodes_to_emitter(template_node, dest_node, template_analysis, dest_analysis)
 
             processed_dest_sigs << dest_sig if dest_sig
             processed_template_sigs << template_sig if template_sig
           else
             # Destination-only node - always keep
-            add_node_to_result(dest_node, result, :destination, MergeResult::DECISION_KEPT_DEST, dest_analysis)
+            emit_node(dest_node, dest_analysis)
             processed_dest_sigs << dest_sig if dest_sig
           end
         end
@@ -127,35 +130,146 @@ module Json
           # Skip if already processed
           next if template_sig && processed_template_sigs.include?(template_sig)
 
-          # Skip freeze blocks from template
-          next if freeze_node?(template_node)
-
           # Add template-only node
-          add_node_to_result(template_node, result, :template, MergeResult::DECISION_ADDED, template_analysis)
+          emit_node(template_node, template_analysis)
           processed_template_sigs << template_sig if template_sig
         end
       end
 
       # Merge two matched nodes - for containers, recursively merge children
+      # Emits to emitter instead of result
       # @param template_node [NodeWrapper] Template node
       # @param dest_node [NodeWrapper] Destination node
       # @param template_analysis [FileAnalysis] Template analysis
       # @param dest_analysis [FileAnalysis] Destination analysis
-      # @param result [MergeResult] Result to populate
-      def merge_matched_nodes(template_node, dest_node, template_analysis, dest_analysis, result)
+      def merge_matched_nodes_to_emitter(template_node, dest_node, template_analysis, dest_analysis)
         if dest_node.container? && template_node.container?
           # Both are containers - recursively merge their children
-          merge_container_nodes(template_node, dest_node, template_analysis, dest_analysis, result)
+          merge_container_to_emitter(template_node, dest_node, template_analysis, dest_analysis)
+        elsif dest_node.pair? && template_node.pair?
+          # Both are pairs - check if their values are OBJECTS (not arrays) that need recursive merge
+          template_value = template_node.value_node
+          dest_value = dest_node.value_node
+
+          # Only recursively merge if BOTH values are objects (not arrays)
+          # Arrays are replaced atomically based on preference
+          if template_value&.type == :object && dest_value&.type == :object &&
+              template_value.container? && dest_value.container?
+            # Both values are objects - recursively merge
+            @emitter.emit_nested_object_start(dest_node.key_name)
+
+            # Recursively merge the value objects
+            merge_node_lists_to_emitter(
+              template_value.mergeable_children,
+              dest_value.mergeable_children,
+              template_analysis,
+              dest_analysis,
+            )
+
+            # Emit closing brace
+            @emitter.emit_nested_object_end
+          elsif @preference == :destination
+            # Values are not both objects, or one/both are arrays - use preference and emit
+            # Arrays are always replaced, not merged
+            emit_node(dest_node, dest_analysis)
+          else
+            emit_node(template_node, template_analysis)
+          end
         elsif @preference == :destination
           # Leaf nodes or mismatched types - use preference
-          add_node_to_result(dest_node, result, :destination, MergeResult::DECISION_KEPT_DEST, dest_analysis)
+          emit_node(dest_node, dest_analysis)
         else
-          add_node_to_result(template_node, result, :template, MergeResult::DECISION_KEPT_TEMPLATE, template_analysis)
+          emit_node(template_node, template_analysis)
         end
       end
 
-      # Build a map of refined matches from template node to destination node.
-      # Uses the match_refiner to find additional pairings for nodes that didn't match by signature.
+      # Merge container nodes by emitting via emitter
+      # @param template_node [NodeWrapper] Template container node
+      # @param dest_node [NodeWrapper] Destination container node
+      # @param template_analysis [FileAnalysis] Template analysis
+      # @param dest_analysis [FileAnalysis] Destination analysis
+      def merge_container_to_emitter(template_node, dest_node, template_analysis, dest_analysis)
+        # Emit opening bracket
+        if dest_node.object?
+          @emitter.emit_object_start
+        elsif dest_node.array?
+          @emitter.emit_array_start
+        end
+
+        # Recursively merge the children
+        template_children = template_node.mergeable_children
+        dest_children = dest_node.mergeable_children
+
+        merge_node_lists_to_emitter(
+          template_children,
+          dest_children,
+          template_analysis,
+          dest_analysis,
+        )
+
+        # Emit closing bracket
+        if dest_node.object?
+          @emitter.emit_object_end
+        elsif dest_node.array?
+          @emitter.emit_array_end
+        end
+      end
+
+      # Emit a single node to the emitter
+      # @param node [NodeWrapper] Node to emit
+      # @param analysis [FileAnalysis] Analysis for accessing source
+      def emit_node(node, analysis)
+        # Emit the node content
+        if node.pair?
+          # Emit as pair
+          key = node.key_name
+          value_node = node.value_node
+
+          if value_node
+            # Check if value is an object (not array) and needs recursive emission
+            if value_node.type == :object && value_node.container?
+              # Object value - emit structure recursively
+              @emitter.emit_nested_object_start(key)
+              # Recursively emit object children
+              value_node.mergeable_children.each do |child|
+                emit_node(child, analysis)
+              end
+              @emitter.emit_nested_object_end
+            else
+              # Leaf value or array - get its text and emit as simple pair
+              # Arrays are emitted as raw text (not recursively)
+              value_text = if value_node.start_line == value_node.end_line
+                value_node.text
+              else
+                # Multi-line value - get all lines
+                lines = []
+                (value_node.start_line..value_node.end_line).each do |ln|
+                  lines << analysis.line_at(ln)
+                end
+                lines.join("\n")
+              end
+
+              @emitter.emit_pair(key, value_text) if key && value_text
+            end
+          end
+        elsif node.start_line && node.end_line
+          # Emit raw content for non-pair nodes
+          if node.start_line == node.end_line
+            # Single line - add directly
+            @emitter.lines << node.text
+          else
+            # Multi-line - collect and emit
+            lines = []
+            (node.start_line..node.end_line).each do |ln|
+              line = analysis.line_at(ln)
+              lines << line if line
+            end
+            @emitter.emit_raw_lines(lines)
+          end
+        end
+      end
+
+      # Build a map of refined matches from template node to destination node
       # @param template_nodes [Array<NodeWrapper>] Template nodes
       # @param dest_nodes [Array<NodeWrapper>] Destination nodes
       # @param template_by_sig [Hash] Template signature map
@@ -186,62 +300,6 @@ module Json
         # Build result map: template node -> dest node
         matches.each_with_object({}) do |match, h|
           h[match.template_node] = match.dest_node
-        end
-      end
-
-      # Merge two container nodes by emitting opening, recursively merging children, then closing
-      # @param template_node [NodeWrapper] Template container node
-      # @param dest_node [NodeWrapper] Destination container node
-      # @param template_analysis [FileAnalysis] Template analysis
-      # @param dest_analysis [FileAnalysis] Destination analysis
-      # @param result [MergeResult] Result to populate
-      def merge_container_nodes(template_node, dest_node, template_analysis, dest_analysis, result)
-        # Use destination's opening line (or template if dest doesn't have one)
-        opening = dest_node.opening_line || template_node.opening_line
-        result.add_line(opening, decision: MergeResult::DECISION_MERGED, source: :merged) if opening
-
-        # Recursively merge the children
-        template_children = template_node.mergeable_children
-        dest_children = dest_node.mergeable_children
-
-        merge_node_lists(
-          template_children,
-          dest_children,
-          template_analysis,
-          dest_analysis,
-          result,
-        )
-
-        # Use destination's closing line (or template if dest doesn't have one)
-        closing = dest_node.closing_line || template_node.closing_line
-        result.add_line(closing, decision: MergeResult::DECISION_MERGED, source: :merged) if closing
-      end
-
-      # Add a node to the result (non-container or leaf node)
-      # @param node [NodeWrapper] Node to add
-      # @param result [MergeResult] Result to populate
-      # @param source [Symbol] :template or :destination
-      # @param decision [String] Decision constant
-      # @param analysis [FileAnalysis] Analysis for line access
-      def add_node_to_result(node, result, source, decision, analysis)
-        if freeze_node?(node)
-          result.add_freeze_block(node)
-        elsif node.is_a?(NodeWrapper)
-          add_wrapper_to_result(node, result, source, decision, analysis)
-        else
-          DebugLogger.debug("Unknown node type", {node_type: node.class.name})
-        end
-      end
-
-      def add_wrapper_to_result(wrapper, result, source, decision, analysis)
-        return unless wrapper.start_line && wrapper.end_line
-
-        # Add the node content line by line
-        (wrapper.start_line..wrapper.end_line).each do |line_num|
-          line = analysis.line_at(line_num)
-          next unless line
-
-          result.add_line(line.chomp, decision: decision, source: source, original_line: line_num)
         end
       end
     end

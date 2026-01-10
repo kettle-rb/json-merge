@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "spec_helper"
+
 # FileAnalysis specs with explicit backend testing
 #
 # This spec file tests FileAnalysis behavior across all available tree-sitter backends:
@@ -36,7 +38,7 @@ RSpec.describe Json::Merge::FileAnalysis do
   # Backend-aware tests - MRI/ruby_tree_sitter
   # ============================================================
 
-  context "with MRI backend", :mri_backend, :json_grammar do
+  context "with MRI backend", :json_grammar, :mri_backend do
     around do |example|
       TreeHaver.with_backend(:mri) do
         example.run
@@ -84,7 +86,7 @@ RSpec.describe Json::Merge::FileAnalysis do
   # Backend-aware tests - Rust/tree_stump
   # ============================================================
 
-  context "with Rust backend", :rust_backend, :json_grammar do
+  context "with Rust backend", :json_grammar, :rust_backend do
     around do |example|
       TreeHaver.with_backend(:rust) do
         example.run
@@ -128,4 +130,3 @@ RSpec.describe Json::Merge::FileAnalysis do
     it_behaves_like "integrate_nodes"
   end
 end
-

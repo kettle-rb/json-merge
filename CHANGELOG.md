@@ -20,13 +20,48 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Added
 
+- bin/rspec-ffi to run FFI isolated specs
+  - Also bin/rake ffi_specs
+- FFI backend isolation for test suite
+  - Added `bin/rspec-ffi` script to run FFI specs in isolation (before MRI backend loads)
+  - Added `spec/spec_ffi_helper.rb` for FFI-specific test configuration
+  - Updated Rakefile with `ffi_specs` and `remaining_specs` tasks
+  - The `:test` task now runs FFI specs first, then remaining specs
+
 ### Changed
+
+- ast-merge v3.1.0
+  - adds Ast::Merge::EmitterBase
+- tree_haver v4.0.5
+  - FFI Backend improvements
+  - Error handling improvements
+- **Simplified dependency_tags.rb**: Removed redundant debug code
+  - Removed `JSON_MERGE_DEBUG` env var handling (use `TREE_HAVER_DEBUG` instead)
+  - tree_haver's debug output now respects blocked backends via `compute_blocked_backends`
+  - Avoids accidentally loading MRI backend during FFI-only test runs
 
 ### Deprecated
 
 ### Removed
 
+- **Obsolete Tests**: Removed 3 obsolete integration tests
+  - Tests for `add_node_to_result` and `add_wrapper_to_result` methods
+  - These methods don't exist in the `:batch` strategy (ConflictResolver now uses Emitter)
+  - Tests were for old `:node` strategy pattern
+
 ### Fixed
+
+- **ConflictResolver#emit_node**: Fixed handling of pair nodes with object values
+  - When emitting a pair like `"features": {...}`, the value was treated as raw text
+  - Now correctly detects when a pair's value is an object container
+  - Recursively emits object structure using `emit_nested_object_start/end`
+  - Treats arrays as atomic values (emits as raw text)
+  - Prevents double key emission and invalid JSON output in nested merges
+- **ConflictResolver#merge_matched_nodes_to_emitter**: Fixed array handling in merge logic
+  - Arrays are now treated atomically and replaced based on preference setting
+  - Only objects (not arrays) are recursively merged
+  - Fixes potential "expected object key, got number" errors when merging arrays
+  - Arrays like `[1,2,3]` are now correctly replaced with `[4,5]` based on preference
 
 ### Security
 

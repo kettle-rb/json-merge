@@ -323,4 +323,3 @@ RSpec.shared_examples "invalid destination detection" do
     end
   end
 end
-

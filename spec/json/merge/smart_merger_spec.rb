@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "spec_helper"
+
 # SmartMerger specs with explicit backend testing
 #
 # This spec file tests SmartMerger behavior across all available tree-sitter backends:
@@ -30,7 +32,7 @@ RSpec.describe Json::Merge::SmartMerger do
   # Backend-aware tests - MRI/ruby_tree_sitter
   # ============================================================
 
-  context "with MRI backend", :mri_backend, :json_grammar do
+  context "with MRI backend", :json_grammar, :mri_backend do
     around do |example|
       TreeHaver.with_backend(:mri) do
         example.run
@@ -70,7 +72,7 @@ RSpec.describe Json::Merge::SmartMerger do
   # Backend-aware tests - Rust/tree_stump
   # ============================================================
 
-  context "with Rust backend", :rust_backend, :json_grammar do
+  context "with Rust backend", :json_grammar, :rust_backend do
     around do |example|
       TreeHaver.with_backend(:rust) do
         example.run
@@ -106,4 +108,3 @@ RSpec.describe Json::Merge::SmartMerger do
     it_behaves_like "invalid destination detection"
   end
 end
-
