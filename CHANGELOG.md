@@ -20,6 +20,25 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [1.1.0] - 2026-01-12
+
+- TAG: [v1.1.0][1.1.0t]
+- COVERAGE: 95.77% -- 589/615 lines in 10 files
+- BRANCH COVERAGE: 78.82% -- 227/288 branches in 10 files
+- 96.63% documented
+
+### Added
+
 - bin/rspec-ffi to run FFI isolated specs
   - Also bin/rake ffi_specs
 - FFI backend isolation for test suite
@@ -39,8 +58,6 @@ Please file a bug if you notice a violation of semantic versioning.
   - Removed `JSON_MERGE_DEBUG` env var handling (use `TREE_HAVER_DEBUG` instead)
   - tree_haver's debug output now respects blocked backends via `compute_blocked_backends`
   - Avoids accidentally loading MRI backend during FFI-only test runs
-
-### Deprecated
 
 ### Removed
 
@@ -67,8 +84,6 @@ Please file a bug if you notice a violation of semantic versioning.
   - Fixes potential "expected object key, got number" errors when merging arrays
   - Arrays like `[1,2,3]` are now correctly replaced with `[4,5]` based on preference
 
-### Security
-
 ## [1.0.0] - 2026-01-06
 
 - TAG: [v1.0.0][1.0.0t]
@@ -82,6 +97,8 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Security
 
-[Unreleased]: https://github.com/kettle-rb/json-merge/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/kettle-rb/json-merge/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/kettle-rb/json-merge/compare/v1.0.0...v1.1.0
+[1.1.0t]: https://github.com/kettle-rb/json-merge/releases/tag/v1.1.0
 [1.0.0]: https://github.com/kettle-rb/json-merge/compare/f1cc25b1d9b79c598270e3aa203fa56787e6c6fc...v1.0.0
 [1.0.0t]: https://github.com/kettle-rb/json-merge/tags/v1.0.0

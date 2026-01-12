@@ -68,7 +68,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 and <a href="https://tom.preston-werner.com/2022/05/23/major-version-numbers-are-not-sacred.html">yes</a>, platform and engine support are part of the <a href="https://github.com/semver/semver/issues/716#issuecomment-869336139">public API</a>.<br>
 Please file a bug if you notice a violation of semantic versioning.</p>
 
-<h2 id="unreleased"><a href="https://github.com/kettle-rb/json-merge/compare/v1.0.0...HEAD">Unreleased</a></h2>
+<h2 id="unreleased"><a href="https://github.com/kettle-rb/json-merge/compare/v1.1.0...HEAD">Unreleased</a></h2>
 
 <h3 id="added">Added</h3>
 
@@ -82,6 +82,108 @@ Please file a bug if you notice a violation of semantic versioning.</p>
 
 <h3 id="security">Security</h3>
 
+<h2 id="110---2026-01-12">
+<a href="https://github.com/kettle-rb/json-merge/compare/v1.0.0...v1.1.0">1.1.0</a> - 2026-01-12</h2>
+
+<ul>
+  <li>TAG: <a href="https://github.com/kettle-rb/json-merge/releases/tag/v1.1.0">v1.1.0</a>
+</li>
+  <li>COVERAGE: 95.77% – 589/615 lines in 10 files</li>
+  <li>BRANCH COVERAGE: 78.82% – 227/288 branches in 10 files</li>
+  <li>96.63% documented</li>
+</ul>
+
+<h3 id="added-1">Added</h3>
+
+<ul>
+  <li>bin/rspec-ffi to run FFI isolated specs
+    <ul>
+      <li>Also bin/rake ffi_specs</li>
+    </ul>
+  </li>
+  <li>FFI backend isolation for test suite
+    <ul>
+      <li>Added <code>bin/rspec-ffi</code> script to run FFI specs in isolation (before MRI backend loads)</li>
+      <li>Added <code>spec/spec_ffi_helper.rb</code> for FFI-specific test configuration</li>
+      <li>Updated Rakefile with <code>ffi_specs</code> and <code>remaining_specs</code> tasks</li>
+      <li>The <code>:test</code> task now runs FFI specs first, then remaining specs</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="changed-1">Changed</h3>
+
+<ul>
+  <li>ast-merge v4.0.2
+    <ul>
+      <li>Includes Ast::Merge::EmitterBase</li>
+    </ul>
+  </li>
+  <li>tree_haver v5.0.1
+    <ul>
+      <li>Many Backend improvements</li>
+      <li>Many error handling improvements</li>
+    </ul>
+  </li>
+  <li>
+<strong>Simplified dependency_tags.rb</strong>: Removed redundant debug code
+    <ul>
+      <li>Removed <code>JSON_MERGE_DEBUG</code> env var handling (use <code>TREE_HAVER_DEBUG</code> instead)</li>
+      <li>tree_haver’s debug output now respects blocked backends via <code>compute_blocked_backends</code>
+</li>
+      <li>Avoids accidentally loading MRI backend during FFI-only test runs</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="removed-1">Removed</h3>
+
+<ul>
+  <li>
+<strong>Obsolete Tests</strong>: Removed 3 obsolete integration tests
+    <ul>
+      <li>Tests for <code>add_node_to_result</code> and <code>add_wrapper_to_result</code> methods</li>
+      <li>These methods don’t exist in the <code>:batch</code> strategy (ConflictResolver now uses Emitter)</li>
+      <li>Tests were for old <code>:node</code> strategy pattern</li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="fixed-1">Fixed</h3>
+
+<ul>
+  <li>
+<strong>NodeWrapper signature tests</strong>: Updated tests to expect <code>:root_object</code>/<code>:root_array</code> for root-level containers
+    <ul>
+      <li>Root-level objects now correctly return <code>[:root_object, ...]</code> instead of <code>[:object, ...]</code>
+</li>
+      <li>Root-level arrays now correctly return <code>[:root_array]</code> instead of <code>[:array, count]</code>
+</li>
+      <li>Added <code>:parent</code> method stubs to mock node tests for <code>root_level_container?</code> compatibility</li>
+    </ul>
+  </li>
+  <li>
+<strong>ConflictResolver#emit_node</strong>: Fixed handling of pair nodes with object values
+    <ul>
+      <li>When emitting a pair like <code>"features": {...}</code>, the value was treated as raw text</li>
+      <li>Now correctly detects when a pair’s value is an object container</li>
+      <li>Recursively emits object structure using <code>emit_nested_object_start/end</code>
+</li>
+      <li>Treats arrays as atomic values (emits as raw text)</li>
+      <li>Prevents double key emission and invalid JSON output in nested merges</li>
+    </ul>
+  </li>
+  <li>
+<strong>ConflictResolver#merge_matched_nodes_to_emitter</strong>: Fixed array handling in merge logic
+    <ul>
+      <li>Arrays are now treated atomically and replaced based on preference setting</li>
+      <li>Only objects (not arrays) are recursively merged</li>
+      <li>Fixes potential “expected object key, got number” errors when merging arrays</li>
+      <li>Arrays like <code>[1,2,3]</code> are now correctly replaced with <code>[4,5]</code> based on preference</li>
+    </ul>
+  </li>
+</ul>
+
 <h2 id="100---2026-01-06">
 <a href="https://github.com/kettle-rb/json-merge/compare/f1cc25b1d9b79c598270e3aa203fa56787e6c6fc...v1.0.0">1.0.0</a> - 2026-01-06</h2>
 
@@ -93,7 +195,7 @@ Please file a bug if you notice a violation of semantic versioning.</p>
   <li>96.67% documented</li>
 </ul>
 
-<h3 id="added-1">Added</h3>
+<h3 id="added-2">Added</h3>
 
 <ul>
   <li>Initial release</li>
@@ -104,7 +206,7 @@ Please file a bug if you notice a violation of semantic versioning.</p>
 </div></div>
 
       <div id="footer">
-  Generated on Tue Jan  6 05:29:54 2026 by
+  Generated on Mon Jan 12 06:35:53 2026 by
   <a href="https://yardoc.org" title="Yay! A Ruby Documentation Tool" target="_parent">yard</a>
   0.9.38 (ruby-4.0.0).
 </div>
