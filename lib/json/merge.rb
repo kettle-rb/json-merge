@@ -108,6 +108,18 @@ module Json
   end
 end
 
+# Register with ast-merge's MergeGemRegistry for RSpec dependency tags
+# Only register if MergeGemRegistry is loaded (i.e., in test environment)
+if defined?(Ast::Merge::RSpec::MergeGemRegistry)
+  Ast::Merge::RSpec::MergeGemRegistry.register(
+    :json_merge,
+    require_path: "json/merge",
+    merger_class: "Json::Merge::SmartMerger",
+    test_source: '{"key": "value"}',
+    category: :data,
+  )
+end
+
 Json::Merge::Version.class_eval do
   extend VersionGem::Basic
 end

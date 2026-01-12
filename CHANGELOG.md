@@ -30,11 +30,11 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Changed
 
-- ast-merge v3.1.0
-  - adds Ast::Merge::EmitterBase
-- tree_haver v4.0.5
-  - FFI Backend improvements
-  - Error handling improvements
+- ast-merge v4.0.2
+  - Includes Ast::Merge::EmitterBase
+- tree_haver v5.0.1
+  - Many Backend improvements
+  - Many error handling improvements
 - **Simplified dependency_tags.rb**: Removed redundant debug code
   - Removed `JSON_MERGE_DEBUG` env var handling (use `TREE_HAVER_DEBUG` instead)
   - tree_haver's debug output now respects blocked backends via `compute_blocked_backends`
