@@ -120,6 +120,7 @@ module Json
           preference: @preference,
           add_template_only_nodes: @add_template_only_nodes,
           match_refiner: @match_refiner,
+          node_typing: @node_typing,
         )
       end
 

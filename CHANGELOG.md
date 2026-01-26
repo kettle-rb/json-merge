@@ -20,6 +20,8 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Added
 
+- ConflictResolver now applies per-node-type preferences via `node_typing`.
+
 ### Changed
 
 - ast-merge v4.0.4
