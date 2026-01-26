@@ -20,12 +20,7 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Added
 
-- ConflictResolver now applies per-node-type preferences via `node_typing`.
-
 ### Changed
-
-- ast-merge v4.0.4
-- tree_haver v5.0.2
 
 ### Deprecated
 
@@ -34,6 +29,22 @@ Please file a bug if you notice a violation of semantic versioning.
 ### Fixed
 
 ### Security
+
+## [1.1.1] - 2026-01-26
+
+- TAG: [v1.1.1][1.1.1t]
+- COVERAGE: 95.72% -- 604/631 lines in 10 files
+- BRANCH COVERAGE: 77.81% -- 235/302 branches in 10 files
+- 96.63% documented
+
+### Added
+
+- ConflictResolver now applies per-node-type preferences via `node_typing`.
+
+### Changed
+
+- ast-merge v4.0.4
+- tree_haver v5.0.2
 
 ## [1.1.0] - 2026-01-12
 
@@ -102,7 +113,9 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Security
 
-[Unreleased]: https://github.com/kettle-rb/json-merge/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/kettle-rb/json-merge/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/kettle-rb/json-merge/compare/v1.1.0...v1.1.1
+[1.1.1t]: https://github.com/kettle-rb/json-merge/releases/tag/v1.1.1
 [1.1.0]: https://github.com/kettle-rb/json-merge/compare/v1.0.0...v1.1.0
 [1.1.0t]: https://github.com/kettle-rb/json-merge/releases/tag/v1.1.0
 [1.0.0]: https://github.com/kettle-rb/json-merge/compare/f1cc25b1d9b79c598270e3aa203fa56787e6c6fc...v1.0.0
