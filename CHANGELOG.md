@@ -22,9 +22,6 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Changed
 
-- Upgrade to [ast-merge v4.0.5](https://github.com/kettle-rb/ast-merge/releases/tag/v4.0.5)
-- Upgrade to [tree_haver v5.0.3](https://github.com/kettle-rb/tree_haver/releases/tag/v5.0.3)
-
 ### Deprecated
 
 ### Removed
@@ -32,6 +29,18 @@ Please file a bug if you notice a violation of semantic versioning.
 ### Fixed
 
 ### Security
+
+## [1.1.2] - 2026-02-02
+
+- TAG: [v1.1.2][1.1.2t]
+- COVERAGE: 95.72% -- 604/631 lines in 10 files
+- BRANCH COVERAGE: 77.81% -- 235/302 branches in 10 files
+- 96.63% documented
+
+### Changed
+
+- Upgrade to [ast-merge v4.0.5](https://github.com/kettle-rb/ast-merge/releases/tag/v4.0.5)
+- Upgrade to [tree_haver v5.0.3](https://github.com/kettle-rb/tree_haver/releases/tag/v5.0.3)
 
 ## [1.1.1] - 2026-01-26
 
@@ -116,7 +125,9 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Security
 
-[Unreleased]: https://github.com/kettle-rb/json-merge/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/kettle-rb/json-merge/compare/v1.1.2...HEAD
+[1.1.2]: https://github.com/kettle-rb/json-merge/compare/v1.1.1...v1.1.2
+[1.1.2t]: https://github.com/kettle-rb/json-merge/releases/tag/v1.1.2
 [1.1.1]: https://github.com/kettle-rb/json-merge/compare/v1.1.0...v1.1.1
 [1.1.1t]: https://github.com/kettle-rb/json-merge/releases/tag/v1.1.1
 [1.1.0]: https://github.com/kettle-rb/json-merge/compare/v1.0.0...v1.1.0
