@@ -22,6 +22,9 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Changed
 
+- Upgrade to [ast-merge v4.0.5](https://github.com/kettle-rb/ast-merge/releases/tag/v4.0.5)
+- Upgrade to [tree_haver v5.0.3](https://github.com/kettle-rb/tree_haver/releases/tag/v5.0.3)
+
 ### Deprecated
 
 ### Removed
@@ -43,8 +46,8 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Changed
 
-- ast-merge v4.0.4
-- tree_haver v5.0.2
+- Upgrade to [ast-merge v4.0.4](https://github.com/kettle-rb/ast-merge/releases/tag/v4.0.4)
+- Upgrade to [tree_haver v5.0.2](https://github.com/kettle-rb/tree_haver/releases/tag/v5.0.2)
 
 ## [1.1.0] - 2026-01-12
 
@@ -65,9 +68,9 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Changed
 
-- ast-merge v4.0.2
+- Upgrade to [ast-merge v4.0.2](https://github.com/kettle-rb/ast-merge/releases/tag/v4.0.2)
   - Includes Ast::Merge::EmitterBase
-- tree_haver v5.0.1
+- Upgrade to [tree_haver v5.0.1](https://github.com/kettle-rb/tree_haver/releases/tag/v5.0.1)
   - Many Backend improvements
   - Many error handling improvements
 - **Simplified dependency_tags.rb**: Removed redundant debug code
