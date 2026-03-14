@@ -16,13 +16,11 @@ require "ast/merge"
 # This gem
 require_relative "merge/version"
 
-# Json::Merge provides a JSON file smart merge system using tree-sitter AST analysis.
+# Json::Merge provides a strict JSON file smart merge system using tree-sitter AST analysis.
 # It intelligently merges template and destination JSON files by identifying matching
 # keys and resolving differences using structural signatures.
 #
-# For JSONC (JSON with Comments) support, see the jsonc-merge gem which handles
-# configuration files that include comments
-# (like devcontainer.json, tsconfig.json, VS Code settings, etc.).
+# For commented JSON-like inputs, use the jsonc-merge gem instead.
 #
 # @example Basic usage
 #   template = File.read("template.json")
@@ -36,11 +34,11 @@ require_relative "merge/version"
 #   puts debug_result[:content]
 #   puts debug_result[:statistics]
 module Json
-  # Smart merge system for JSON files using tree-sitter AST analysis.
+  # Smart merge system for strict JSON files using tree-sitter AST analysis.
   # Provides intelligent merging by understanding JSON structure
   # rather than treating files as plain text.
   #
-  # For JSONC (JSON with Comments) support, use the jsonc-merge gem instead.
+  # For commented JSON-like inputs, use the jsonc-merge gem instead.
   #
   # @see SmartMerger Main entry point for merge operations
   # @see FileAnalysis Analyzes JSON structure

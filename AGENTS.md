@@ -2,9 +2,9 @@
 
 ## 🎯 Project Overview
 
-`json-merge` is a **format-specific implementation of the `*-merge` gem family** for JSON files. It provides intelligent JSON file merging using AST analysis with tree-sitter JSON parser.
+`json-merge` is a **format-specific implementation of the `*-merge` gem family** for strict JSON files. It provides intelligent JSON file merging using AST analysis with tree-sitter JSON parser.
 
-**Core Philosophy**: Intelligent JSON merging that preserves structure and formatting while applying updates from templates.
+**Core Philosophy**: Intelligent strict-JSON merging that preserves structure and formatting while applying updates from templates.
 
 **Repository**: https://github.com/kettle-rb/json-merge
 **Current Version**: 1.1.2
@@ -20,34 +20,49 @@
 
 **CRITICAL**: The canonical project environment now lives in `mise.toml`, with local overrides in `.env.local` loaded via `dotenvy`.
 
-✅ **CORRECT**:
+⚠️ **Watch for trust prompts**: After editing `mise.toml` or `.env.local`, `mise` may require trust to be refreshed before commands can load the project environment. That interactive trust screen can masquerade as missing terminal output, so commands may appear hung or silent until you handle it.
+
+**Recovery rule**: If a `mise exec` command in this repo goes silent, appears hung, or terminal polling stops returning useful output, assume `mise trust` is needed first and recover with:
+
 ```bash
-mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- bundle exec rspec
+mise trust -C /home/pboling/src/kettle-rb/json-merge
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- bundle exec rspec
+```
+
+Do this before spending time on unrelated debugging; in this workspace, silent `mise` commands are usually a trust problem.
+
+```bash
+mise trust -C /home/pboling/src/kettle-rb/json-merge
 ```
 
 ✅ **CORRECT**:
 ```bash
-eval "$(mise env -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -s bash)" && bundle exec rspec
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- bundle exec rspec
+```
+
+✅ **CORRECT**:
+```bash
+eval "$(mise env -C /home/pboling/src/kettle-rb/json-merge -s bash)" && bundle exec rspec
 ```
 
 ❌ **WRONG**:
 ```bash
-cd /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge
+cd /home/pboling/src/kettle-rb/json-merge
 bundle exec rspec
 ```
 
 ❌ **WRONG**:
 ```bash
-cd /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge && bundle exec rspec
+cd /home/pboling/src/kettle-rb/json-merge && bundle exec rspec
 ```
 
 ### Prefer Internal Tools Over Terminal
 
 Use `read_file`, `list_dir`, `grep_search`, `file_search` instead of terminal commands for gathering information. Only use terminal for running tests, installing dependencies, and git operations.
 
-### grep_search Cannot Search Nested Git Projects
+### Workspace layout
 
-This project is a nested git project inside the `ast-merge` workspace. The `grep_search` tool **cannot** search inside it. Use `read_file` and `list_dir` instead.
+This repo is a sibling project inside the `/home/pboling/src/kettle-rb` workspace, not a vendored dependency under another repo.
 
 ### NEVER Pipe Test Commands Through head/tail
 
@@ -62,7 +77,7 @@ Run the plain command and inspect the full output afterward. Do not truncate tes
 - **`Json::Merge::NodeWrapper`** – Wrapper for JSON AST nodes
 - **`Json::Merge::MergeResult`** – JSON-specific merge result
 - **`Json::Merge::ConflictResolver`** – JSON conflict resolution
-- **`Json::Merge::FreezeNode`** – JSON freeze block support (via special comment keys)
+- **`Json::Merge::FreezeNode`** – JSON freeze block support (via special freeze keys)
 - **`Json::Merge::DebugLogger`** – JSON-specific debug logging
 
 ### Key Dependencies
@@ -109,24 +124,24 @@ spec/json/merge/
 
 ```bash
 # Full suite (required for coverage thresholds)
-mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- bundle exec rspec
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- bundle exec rspec
 
 # Single file (disable coverage threshold check)
-mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- env K_SOUP_COV_MIN_HARD=false bundle exec rspec spec/json/merge/smart_merger_spec.rb
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- env K_SOUP_COV_MIN_HARD=false bundle exec rspec spec/json/merge/smart_merger_spec.rb
 
 # Specific backend tests
-mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- bundle exec rspec --tag mri_backend
-mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- bundle exec rspec --tag rust_backend
-mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- bundle exec rspec --tag ffi_backend
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- bundle exec rspec --tag mri_backend
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- bundle exec rspec --tag rust_backend
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- bundle exec rspec --tag ffi_backend
 ```
 
-**Note**: Always make commands self-contained. Use `mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- ...` so the command gets the project environment in the same invocation.
+**Note**: Always make commands self-contained. Use `mise exec -C /home/pboling/src/kettle-rb/json-merge -- ...` so the command gets the project environment in the same invocation.
 
 ### Coverage Reports
 
 ```bash
-mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- bin/rake coverage
-mise exec -C /home/pboling/src/kettle-rb/ast-merge/vendor/json-merge -- bin/kettle-soup-cover -d
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- bin/rake coverage
+mise exec -C /home/pboling/src/kettle-rb/json-merge -- bin/kettle-soup-cover -d
 ```
 
 **Key ENV variables** (set in `mise.toml`, with local overrides in `.env.local`):
@@ -152,6 +167,8 @@ bundle exec rake rubocop_gradual
 - `to_s` on MergeResult returns the merged content as a string
 
 #### JSON-Specific Features
+
+Strict JSON does **not** support comments. For commented JSON-like inputs, use `jsonc-merge` instead.
 
 **Object Merging**:
 ```ruby
@@ -302,14 +319,18 @@ kettle-changelog && kettle-release
 ### Node Types
 ```json
 {
-  "object": {},        // Matched by keys
-  "array": [],         // Elements matched by position or value
-  "string": "text",    // Leaf value
-  "number": 42,        // Leaf value
-  "boolean": true,     // Leaf value
-  "null": null         // Leaf value
+  "object": {},
+  "array": [],
+  "string": "text",
+  "number": 42,
+  "boolean": true,
+  "null": null
 }
 ```
+
+- `object`: matched by keys
+- `array`: elements matched by position or value
+- `string`, `number`, `boolean`, `null`: leaf values
 
 ### Merge Behavior
 - **Objects**: Matched by key name; deep merging of nested objects
@@ -332,12 +353,16 @@ kettle-changelog && kettle-release
 ### Type Handling
 ```json
 {
-  "string": "text",      // String type preserved
-  "number": 42,          // Number type preserved
-  "float": 3.14,         // Float type preserved
-  "boolean": true,       // Boolean type preserved
-  "null": null,          // Null type preserved
-  "array": [1, 2, 3],    // Array structure preserved
-  "object": {"a": 1}     // Object structure preserved
+  "string": "text",
+  "number": 42,
+  "float": 3.14,
+  "boolean": true,
+  "null": null,
+  "array": [1, 2, 3],
+  "object": {"a": 1}
 }
 ```
+
+- String, number, float, boolean, and null values preserve their JSON types
+- Arrays preserve array structure
+- Objects preserve object structure

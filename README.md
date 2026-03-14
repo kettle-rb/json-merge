@@ -28,9 +28,9 @@ I've summarized my thoughts in [this blog post](https://dev.to/galtzo/hostile-ta
 
 ## 🌻 Synopsis
 
-Json::Merge is a standalone Ruby module that intelligently merges two versions of a JSON file using tree-sitter AST analysis. It's like a smart "git merge" specifically designed for JSON configuration files. Built on top of [ast-merge][ast-merge], it shares the same architecture as [prism-merge][prism-merge] for Ruby source files.
+Json::Merge is a standalone Ruby module that intelligently merges two versions of a strict JSON file using tree-sitter AST analysis. It's like a smart "git merge" specifically designed for JSON configuration files. Built on top of [ast-merge][ast-merge], it shares the same architecture as [prism-merge][prism-merge] for Ruby source files.
 
-For JSONC (JSON with Comments) support, see the [jsonc-merge][jsonc-merge] gem.
+Comments are out of scope for strict JSON. For commented JSON-like sources, use the [jsonc-merge][jsonc-merge] gem instead.
 
 ### Key Features
 
