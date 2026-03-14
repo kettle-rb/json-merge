@@ -3,9 +3,7 @@
 
 # Minimal debug script to check TreeHaver backend
 
-$LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
-$LOAD_PATH.unshift(File.expand_path("../../tree_haver/lib", __dir__))
-$LOAD_PATH.unshift(File.expand_path("../../ast-merge/lib", __dir__))
+require "bundler/setup"
 
 puts "Loading tree_haver..."
 require "tree_haver"

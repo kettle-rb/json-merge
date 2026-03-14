@@ -20,7 +20,11 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Added
 
+- Added documentation for the intentional family boundary that strict JSON remains outside the shared comment-normalization rollout; commented JSON-like inputs should continue to use `jsonc-merge`
+
 ### Changed
+
+- Clarified that removed-node behavior in strict JSON remains structural rather than comment-oriented, so no comment-promotion semantics were added alongside the family-wide removal-mode work
 
 ### Deprecated
 
