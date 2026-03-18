@@ -9,6 +9,7 @@ module Json
     #   resolver = ConflictResolver.new(template_analysis, dest_analysis)
     #   resolver.resolve(result)
     class ConflictResolver < ::Ast::Merge::ConflictResolverBase
+      include ::Ast::Merge::TrailingGroups::DestIterate
       # Creates a new ConflictResolver
       #
       # @param template_analysis [FileAnalysis] Analyzed template file
@@ -95,6 +96,24 @@ module Json
         consumed_template_indices = ::Set.new
         sig_cursor = Hash.new(0)
 
+        # Pre-compute position-aware trailing groups for template-only nodes.
+        dest_sigs = ::Set.new
+        dest_nodes.each { |n| sig = dest_analysis.generate_signature(n); dest_sigs << sig if sig }
+        refined_template_ids = ::Set.new(refined_matches.keys.map(&:object_id))
+
+        trailing_groups, all_matched_indices = build_dest_iterate_trailing_groups(
+          template_nodes: template_nodes,
+          dest_sigs: dest_sigs,
+          signature_for: ->(node) { template_analysis.generate_signature(node) },
+          refined_template_ids: refined_template_ids,
+          add_template_only_nodes: @add_template_only_nodes,
+        )
+
+        # Emit template-only nodes that precede the first matched template node.
+        emit_prefix_trailing_group(trailing_groups, consumed_template_indices) do |info|
+          emit_node(info[:node], template_analysis)
+        end
+
         # First pass: Process destination nodes
         dest_nodes.each do |dest_node|
           dest_sig = dest_analysis.generate_signature(dest_node)
@@ -148,19 +167,22 @@ module Json
             # Destination-only node - always keep
             emit_node(dest_node, dest_analysis)
           end
+
+          # Flush interior trailing groups (between two matches) that are ready
+          flush_ready_trailing_groups(
+            trailing_groups: trailing_groups,
+            matched_indices: all_matched_indices,
+            consumed_indices: consumed_template_indices,
+          ) { |info| emit_node(info[:node], template_analysis) }
         end
 
-        # Second pass: Add template-only nodes if configured
-        return unless @add_template_only_nodes
-
-        template_nodes.each_with_index do |template_node, idx|
-          # Skip if consumed by a match in the first pass
-          next if consumed_template_indices.include?(idx)
-
-          # Add template-only node
-          emit_node(template_node, template_analysis)
-        end
+        # Emit remaining trailing groups (tail groups after last match + safety net)
+        emit_remaining_trailing_groups(
+          trailing_groups: trailing_groups,
+          consumed_indices: consumed_template_indices,
+        ) { |info| emit_node(info[:node], template_analysis) }
       end
+
 
       # Merge two matched nodes - for containers, recursively merge children
       # Emits to emitter instead of result
