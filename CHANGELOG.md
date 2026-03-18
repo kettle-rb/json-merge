@@ -25,6 +25,7 @@ Please file a bug if you notice a violation of semantic versioning.
 ### Changed
 
 - Clarified that removed-node behavior in strict JSON remains structural rather than comment-oriented, so no comment-promotion semantics were added alongside the family-wide removal-mode work
+- Adopted `Ast::Merge::TrailingGroups::DestIterate` for position-aware template-only object-member and array-item insertion, replacing local trailing-group plumbing with the shared family implementation
 
 ### Deprecated
 
