@@ -522,6 +522,43 @@ RSpec.describe Json::Merge::ConflictResolver do
         expect(output).to include("dest_only")
       end
 
+      it "keeps matched empty nested objects inline" do
+        template_analysis = Json::Merge::FileAnalysis.new(<<~JSON)
+          {
+            "features": {
+              "./apt-install": {}
+            }
+          }
+        JSON
+        dest_analysis = Json::Merge::FileAnalysis.new(<<~JSON)
+          {
+            "features": {
+              "./apt-install": {
+              }
+            }
+          }
+        JSON
+
+        skip "FileAnalysis not valid" unless template_analysis.valid? && dest_analysis.valid?
+
+        resolver = described_class.new(
+          template_analysis,
+          dest_analysis,
+          preference: :template,
+        )
+        result = Json::Merge::MergeResult.new
+
+        resolver.resolve(result)
+
+        expect(result.to_json).to eq(<<~JSON)
+          {
+            "features": {
+              "./apt-install": {}
+            }
+          }
+        JSON
+      end
+
       it "uses destination values by default in nested objects" do
         template_analysis = Json::Merge::FileAnalysis.new(template_with_nested)
         dest_analysis = Json::Merge::FileAnalysis.new(dest_with_nested)

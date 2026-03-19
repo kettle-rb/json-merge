@@ -203,19 +203,23 @@ module Json
           # Arrays are replaced atomically based on preference
           if template_value&.type == :object && dest_value&.type == :object &&
               template_value.container? && dest_value.container?
-            # Both values are objects - recursively merge
-            @emitter.emit_nested_object_start(dest_node.key_name)
+            if compact_empty_container?(template_value) && compact_empty_container?(dest_value)
+              @emitter.emit_pair(dest_node.key_name, compact_container_literal_for(dest_value))
+            else
+              # Both values are objects - recursively merge
+              @emitter.emit_nested_object_start(dest_node.key_name)
 
-            # Recursively merge the value objects
-            merge_node_lists_to_emitter(
-              template_value.mergeable_children,
-              dest_value.mergeable_children,
-              template_analysis,
-              dest_analysis,
-            )
+              # Recursively merge the value objects
+              merge_node_lists_to_emitter(
+                template_value.mergeable_children,
+                dest_value.mergeable_children,
+                template_analysis,
+                dest_analysis,
+              )
 
-            # Emit closing brace
-            @emitter.emit_nested_object_end
+              # Emit closing brace
+              @emitter.emit_nested_object_end
+            end
           elsif preference_for_pair(template_node, dest_node) == :destination
             # Values are not both objects, or one/both are arrays - use preference and emit
             # Arrays are always replaced, not merged
@@ -301,7 +305,9 @@ module Json
 
           if value_node
             # Check if value is an object (not array) and needs recursive emission
-            if value_node.type == :object && value_node.container?
+            if value_node.container? && compact_empty_container?(value_node)
+              @emitter.emit_pair(key, compact_container_literal_for(value_node)) if key
+            elsif value_node.type == :object && value_node.container?
               # Object value - emit structure recursively
               @emitter.emit_nested_object_start(key)
               # Recursively emit object children
@@ -375,6 +381,14 @@ module Json
         matches.each_with_object({}) do |match, h|
           h[match.template_node] = match.dest_node
         end
+      end
+
+      def compact_empty_container?(container_node)
+        container_node&.container? && container_node.mergeable_children.empty?
+      end
+
+      def compact_container_literal_for(container_node)
+        container_node.object? ? "{}" : "[]"
       end
     end
   end
