@@ -10,6 +10,7 @@ module Json
     #   resolver.resolve(result)
     class ConflictResolver < ::Ast::Merge::ConflictResolverBase
       include ::Ast::Merge::TrailingGroups::DestIterate
+
       # Creates a new ConflictResolver
       #
       # @param template_analysis [FileAnalysis] Analyzed template file
@@ -98,7 +99,10 @@ module Json
 
         # Pre-compute position-aware trailing groups for template-only nodes.
         dest_sigs = ::Set.new
-        dest_nodes.each { |n| sig = dest_analysis.generate_signature(n); dest_sigs << sig if sig }
+        dest_nodes.each { |n|
+          sig = dest_analysis.generate_signature(n)
+          dest_sigs << sig if sig
+        }
         refined_template_ids = ::Set.new(refined_matches.keys.map(&:object_id))
 
         trailing_groups, all_matched_indices = build_dest_iterate_trailing_groups(
@@ -182,7 +186,6 @@ module Json
           consumed_indices: consumed_template_indices,
         ) { |info| emit_node(info[:node], template_analysis) }
       end
-
 
       # Merge two matched nodes - for containers, recursively merge children
       # Emits to emitter instead of result
