@@ -17,6 +17,7 @@ module Json
       DECISION_KEPT_DEST = Ast::Merge::MergeResultBase::DECISION_KEPT_DEST
       DECISION_MERGED = Ast::Merge::MergeResultBase::DECISION_MERGED
       DECISION_ADDED = Ast::Merge::MergeResultBase::DECISION_ADDED
+      DECISION_FREEZE_BLOCK = Ast::Merge::MergeResultBase::DECISION_FREEZE_BLOCK
 
       # @return [Hash] Statistics about the merge
       attr_reader :statistics
@@ -29,6 +30,7 @@ module Json
           template_lines: 0,
           dest_lines: 0,
           merged_lines: 0,
+          freeze_preserved_lines: 0,
           total_decisions: 0,
         }
       end
@@ -70,6 +72,20 @@ module Json
       # @param source [Symbol] Source
       def add_blank_line(decision: DECISION_MERGED, source: :merged)
         add_line("", decision: decision, source: source)
+      end
+
+      # Add content from a freeze block
+      #
+      # @param freeze_node [FreezeNode] Freeze block to add
+      def add_freeze_block(freeze_node)
+        freeze_node.lines.each_with_index do |line, idx|
+          add_line(
+            line.chomp,
+            decision: DECISION_FREEZE_BLOCK,
+            source: :destination,
+            original_line: freeze_node.start_line + idx,
+          )
+        end
       end
 
       # Add content from a node wrapper
@@ -127,6 +143,8 @@ module Json
           @statistics[:template_lines] += 1
         when DECISION_KEPT_DEST
           @statistics[:dest_lines] += 1
+        when DECISION_FREEZE_BLOCK
+          @statistics[:freeze_preserved_lines] += 1
         else
           @statistics[:merged_lines] += 1
         end

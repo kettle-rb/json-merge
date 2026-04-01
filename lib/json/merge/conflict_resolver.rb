@@ -8,7 +8,7 @@ module Json
     # @example Basic usage
     #   resolver = ConflictResolver.new(template_analysis, dest_analysis)
     #   resolver.resolve(result)
-    class ConflictResolver < ::Ast::Merge::ConflictResolverBase
+    class ConflictResolver < Ast::Merge::ConflictResolverBase
       include ::Ast::Merge::TrailingGroups::DestIterate
 
       # Creates a new ConflictResolver
@@ -24,13 +24,14 @@ module Json
       # @param options [Hash] Additional options for forward compatibility
       # @param node_typing [Hash{Symbol,String => #call}, nil] Node typing configuration
       #   for per-node-type preferences
-      def initialize(template_analysis, dest_analysis, preference: :destination, add_template_only_nodes: false, match_refiner: nil, node_typing: nil, **options)
+      def initialize(template_analysis, dest_analysis, preference: :destination, add_template_only_nodes: false, remove_template_missing_nodes: false, match_refiner: nil, node_typing: nil, **options)
         super(
           strategy: :batch,
           preference: preference,
           template_analysis: template_analysis,
           dest_analysis: dest_analysis,
           add_template_only_nodes: add_template_only_nodes,
+          remove_template_missing_nodes: remove_template_missing_nodes,
           match_refiner: match_refiner,
           **options
         )
@@ -51,6 +52,8 @@ module Json
           # Clear emitter for fresh merge
           @emitter.clear
 
+          emit_document_prelude(@dest_analysis, nodes: dest_statements)
+
           # Merge root-level statements via emitter
           merge_node_lists_to_emitter(
             template_statements,
@@ -58,6 +61,8 @@ module Json
             @template_analysis,
             @dest_analysis,
           )
+
+          emit_document_postlude(@dest_analysis, fallback_node: dest_statements.last)
 
           # Transfer emitter output to result
           emitted_content = @emitter.to_s
@@ -73,6 +78,15 @@ module Json
             result_lines: result.line_count,
           })
         end
+      end
+
+      public
+
+      def freeze_node?(node)
+        return false unless node
+        return node.freeze_node? if node.respond_to?(:freeze_node?)
+
+        node.is_a?(FreezeNode)
       end
 
       private
@@ -115,12 +129,18 @@ module Json
 
         # Emit template-only nodes that precede the first matched template node.
         emit_prefix_trailing_group(trailing_groups, consumed_template_indices) do |info|
+          next if freeze_node?(info[:node])
           emit_node(info[:node], template_analysis)
         end
 
         # First pass: Process destination nodes
         dest_nodes.each do |dest_node|
           dest_sig = dest_analysis.generate_signature(dest_node)
+
+          if freeze_node?(dest_node)
+            emit_freeze_block(dest_node)
+            next
+          end
 
           # Check for signature match
           if dest_sig && template_by_sig[dest_sig]
@@ -167,6 +187,8 @@ module Json
 
             # Merge matched nodes
             merge_matched_nodes_to_emitter(template_node, dest_node, template_analysis, dest_analysis)
+          elsif @remove_template_missing_nodes
+            emit_removed_destination_node_comments(dest_node, dest_analysis)
           else
             # Destination-only node - always keep
             emit_node(dest_node, dest_analysis)
@@ -177,14 +199,24 @@ module Json
             trailing_groups: trailing_groups,
             matched_indices: all_matched_indices,
             consumed_indices: consumed_template_indices,
-          ) { |info| emit_node(info[:node], template_analysis) }
+          ) do |info|
+            next if freeze_node?(info[:node])
+            emit_node(info[:node], template_analysis)
+          end
         end
 
         # Emit remaining trailing groups (tail groups after last match + safety net)
         emit_remaining_trailing_groups(
           trailing_groups: trailing_groups,
           consumed_indices: consumed_template_indices,
-        ) { |info| emit_node(info[:node], template_analysis) }
+        ) do |info|
+          next if freeze_node?(info[:node])
+          emit_node(info[:node], template_analysis)
+        end
+      end
+
+      def trailing_group_node_matched?(node, _signature)
+        freeze_node?(node)
       end
 
       # Merge two matched nodes - for containers, recursively merge children
@@ -204,15 +236,40 @@ module Json
 
           # Only recursively merge if BOTH values are objects (not arrays)
           # Arrays are replaced atomically based on preference
-          if template_value&.type == :object && dest_value&.type == :object &&
-              template_value.container? && dest_value.container?
-            if compact_empty_container?(template_value) && compact_empty_container?(dest_value)
-              @emitter.emit_pair(dest_node.key_name, compact_container_literal_for(dest_value))
-            else
-              # Both values are objects - recursively merge
-              @emitter.emit_nested_object_start(dest_node.key_name)
+          if template_value&.container? && dest_value&.container? && template_value.type == dest_value.type
+            key_name = dest_node.key_name || template_node.key_name
+            comment_source_node, comment_source_analysis = preferred_comment_source(
+              dest_node,
+              dest_analysis,
+              fallback_node: template_node,
+              fallback_analysis: template_analysis,
+            )
+            comment_attachment = shared_line_comment_attachment_for(comment_source_node, comment_source_analysis)
 
-              # Recursively merge the value objects
+            emit_preferred_leading_comments_for(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment)
+            trailing_source_node, trailing_source_analysis = preferred_container_comment_source(
+              dest_value,
+              dest_analysis,
+              fallback_node: template_value,
+              fallback_analysis: template_analysis,
+            )
+            compact_source_node = trailing_source_node || dest_value || template_value
+
+            if compact_empty_container?(template_value, compact_source_node, trailing_source_analysis)
+              emit_with_preferred_inline_comment(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment) do |inline_text|
+                @emitter.emit_pair(key_name, compact_container_literal_for(template_value), inline_comment: inline_text)
+              end
+            elsif template_value.object?
+              emit_with_preferred_inline_comment(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment) do |inline_text|
+                @emitter.emit_nested_object_start(key_name, inline_comment: inline_text)
+              end
+            elsif template_value.array?
+              emit_with_preferred_inline_comment(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment) do |inline_text|
+                @emitter.emit_array_start(key_name, inline_comment: inline_text)
+              end
+            end
+
+            unless compact_empty_container?(template_value, compact_source_node, trailing_source_analysis)
               merge_node_lists_to_emitter(
                 template_value.mergeable_children,
                 dest_value.mergeable_children,
@@ -220,21 +277,36 @@ module Json
                 dest_analysis,
               )
 
-              # Emit closing brace
-              @emitter.emit_nested_object_end
+              emit_container_trailing_lines(trailing_source_node, trailing_source_analysis)
+
+              if template_value.object?
+                @emitter.emit_nested_object_end
+              elsif template_value.array?
+                @emitter.emit_array_end
+              end
             end
           elsif preference_for_pair(template_node, dest_node) == :destination
             # Values are not both objects, or one/both are arrays - use preference and emit
             # Arrays are always replaced, not merged
             emit_node(dest_node, dest_analysis)
           else
-            emit_node(template_node, template_analysis)
+            emit_node(
+              template_node,
+              template_analysis,
+              comment_source_node: dest_node,
+              comment_analysis: dest_analysis,
+            )
           end
         elsif preference_for_pair(template_node, dest_node) == :destination
           # Leaf nodes or mismatched types - use preference
           emit_node(dest_node, dest_analysis)
         else
-          emit_node(template_node, template_analysis)
+          emit_node(
+            template_node,
+            template_analysis,
+            comment_source_node: dest_node,
+            comment_analysis: dest_analysis,
+          )
         end
       end
 
@@ -244,25 +316,27 @@ module Json
       # @param template_analysis [FileAnalysis] Template analysis
       # @param dest_analysis [FileAnalysis] Destination analysis
       def merge_container_to_emitter(template_node, dest_node, template_analysis, dest_analysis)
-        # Emit opening bracket
         if dest_node.object?
           @emitter.emit_object_start
         elsif dest_node.array?
           @emitter.emit_array_start
         end
 
-        # Recursively merge the children
-        template_children = template_node.mergeable_children
-        dest_children = dest_node.mergeable_children
-
         merge_node_lists_to_emitter(
-          template_children,
-          dest_children,
+          template_node.mergeable_children,
+          dest_node.mergeable_children,
           template_analysis,
           dest_analysis,
         )
 
-        # Emit closing bracket
+        trailing_source_node, trailing_source_analysis = preferred_container_comment_source(
+          dest_node,
+          dest_analysis,
+          fallback_node: template_node,
+          fallback_analysis: template_analysis,
+        )
+        emit_container_trailing_lines(trailing_source_node, trailing_source_analysis)
+
         if dest_node.object?
           @emitter.emit_object_end
         elsif dest_node.array?
@@ -299,49 +373,83 @@ module Json
       # Emit a single node to the emitter
       # @param node [NodeWrapper] Node to emit
       # @param analysis [FileAnalysis] Analysis for accessing source
-      def emit_node(node, analysis)
-        # Emit the node content
+      def emit_node(node, analysis, comment_source_node: nil, comment_analysis: analysis)
+        return if freeze_node?(node)
+
+        source_node = comment_source_node || node
+        source_analysis = comment_source_node ? comment_analysis : analysis
+        source_attachment = shared_line_comment_attachment_for(source_node, source_analysis)
+
+        emit_preferred_leading_comments_for(source_node, source_analysis, shared_attachment: source_attachment)
+
         if node.pair?
           # Emit as pair
           key = node.key_name
           value_node = node.value_node
+          source_value_node = source_node.respond_to?(:value_node) ? source_node.value_node : nil
 
           if value_node
             # Check if value is an object (not array) and needs recursive emission
-            if value_node.container? && compact_empty_container?(value_node)
-              @emitter.emit_pair(key, compact_container_literal_for(value_node)) if key
-            elsif value_node.type == :object && value_node.container?
-              # Object value - emit structure recursively
-              @emitter.emit_nested_object_start(key)
-              # Recursively emit object children
-              value_node.mergeable_children.each do |child|
-                emit_node(child, analysis)
-              end
-              @emitter.emit_nested_object_end
-            else
-              # Leaf value or array - get its text and emit as simple pair
-              # Arrays are emitted as raw text (not recursively)
-              value_text = if value_node.start_line == value_node.end_line
-                value_node.text
-              else
-                # Multi-line value - get all lines
-                lines = []
-                (value_node.start_line..value_node.end_line).each do |ln|
-                  lines << analysis.line_at(ln)
+            if value_node.container?
+              container_comment_source = source_value_node || value_node
+
+              if compact_empty_container?(value_node, container_comment_source, source_analysis)
+                emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+                  @emitter.emit_pair(key, compact_container_literal_for(value_node), inline_comment: inline_text) if key
                 end
-                lines.join("\n")
+              elsif value_node.object?
+                emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+                  @emitter.emit_nested_object_start(key, inline_comment: inline_text)
+                end
+              elsif value_node.array?
+                emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+                  @emitter.emit_array_start(key, inline_comment: inline_text)
+                end
               end
 
-              @emitter.emit_pair(key, value_text) if key && value_text
+              unless compact_empty_container?(value_node, container_comment_source, source_analysis)
+                value_node.mergeable_children.each do |child|
+                  emit_node(child, analysis)
+                end
+
+                emit_container_trailing_lines(container_comment_source, source_analysis)
+
+                if value_node.object?
+                  @emitter.emit_nested_object_end
+                elsif value_node.array?
+                  @emitter.emit_array_end
+                end
+              end
+            else
+              emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+                @emitter.emit_pair(key, value_node.text, inline_comment: inline_text) if key
+              end
             end
           end
+        elsif node.container?
+          if node.object?
+            @emitter.emit_object_start
+          elsif node.array?
+            @emitter.emit_array_start
+          end
+
+          node.mergeable_children.each do |child|
+            emit_node(child, analysis)
+          end
+
+          emit_container_trailing_lines(source_node, source_analysis)
+
+          if node.object?
+            @emitter.emit_object_end
+          elsif node.array?
+            @emitter.emit_array_end
+          end
         elsif node.start_line && node.end_line
-          # Emit raw content for non-pair nodes
           if node.start_line == node.end_line
-            # Single line - add directly
-            @emitter.lines << node.text
+            emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+              @emitter.emit_array_element(node.text, inline_comment: inline_text)
+            end
           else
-            # Multi-line - collect and emit
             lines = []
             (node.start_line..node.end_line).each do |ln|
               line = analysis.line_at(ln)
@@ -352,47 +460,420 @@ module Json
         end
       end
 
-      # Build a map of refined matches from template node to destination node
-      # @param template_nodes [Array<NodeWrapper>] Template nodes
-      # @param dest_nodes [Array<NodeWrapper>] Destination nodes
-      # @param template_by_sig [Hash] Template signature map
-      # @param dest_by_sig [Hash] Destination signature map
-      # @return [Hash] Map of template_node => dest_node
-      def build_refined_matches(template_nodes, dest_nodes, template_by_sig, dest_by_sig)
-        return {} unless @match_refiner
+      def preferred_comment_source(node, analysis, fallback_node: nil, fallback_analysis: nil)
+        return [node, analysis] if node_has_emittable_comments?(node, analysis)
+        return [fallback_node, fallback_analysis] if fallback_node && node_has_emittable_comments?(fallback_node, fallback_analysis)
 
-        # Find unmatched nodes
-        matched_sigs = template_by_sig.keys & dest_by_sig.keys
-        unmatched_t_nodes = template_nodes.reject do |n|
-          sig = @template_analysis.generate_signature(n)
-          sig && matched_sigs.include?(sig)
+        [node, analysis]
+      end
+
+      def preferred_container_comment_source(node, analysis, fallback_node: nil, fallback_analysis: nil)
+        return [node, analysis] if container_has_trailing_comments?(node, analysis)
+        return [fallback_node, fallback_analysis] if fallback_node && container_has_trailing_comments?(fallback_node, fallback_analysis)
+
+        [node, analysis]
+      end
+
+      def node_has_emittable_comments?(node, analysis)
+        return false unless node&.respond_to?(:start_line) && node.start_line
+
+        analysis.comment_tracker.leading_comments_before(node.start_line).any? ||
+          !inline_comment_text_for(node, analysis).nil?
+      end
+
+      def emit_preferred_leading_comments_for(node, analysis, shared_attachment: nil)
+        attachment = shared_attachment || shared_line_comment_attachment_for(node, analysis)
+        region = attachment&.leading_region
+
+        unless region && !region.empty?
+          emit_leading_comments_for(node, analysis)
+          return
         end
-        unmatched_d_nodes = dest_nodes.reject do |n|
-          sig = @dest_analysis.generate_signature(n)
-          sig && matched_sigs.include?(sig)
+
+        emit_blank_lines_before_leading_comments(region.start_line, analysis)
+        @emitter.emit_comment_attachment(attachment, leading: true, inline: false, source_lines: analysis.lines)
+        emit_blank_lines_in_range((region.end_line || node.start_line).to_i + 1, node.start_line.to_i - 1, analysis)
+      end
+
+      def emit_leading_comments_for(node, analysis)
+        return unless node&.respond_to?(:start_line) && node.start_line
+
+        leading = analysis.comment_tracker.leading_comments_before(node.start_line)
+        emit_blank_lines_before_leading_comments(leading.first[:line], analysis) if leading.any?
+        emit_tracked_comments_with_internal_blank_lines(leading, analysis)
+
+        emit_blank_lines_in_range(comment_end_line(leading.last) + 1, node.start_line - 1, analysis) if leading.any?
+      end
+
+      def inline_comment_text_for(node, analysis)
+        return unless node&.respond_to?(:start_line) && node.start_line
+
+        inline_comment = analysis.comment_tracker.inline_comment_at(inline_comment_line_for(node))
+        inline_comment&.dig(:text)
+      end
+
+      def emit_with_preferred_inline_comment(node, analysis, shared_attachment: nil)
+        attachment = shared_attachment || shared_line_comment_attachment_for(node, analysis)
+        inline_region = attachment&.inline_region
+
+        unless inline_region && !inline_region.empty?
+          yield inline_comment_text_for(node, analysis)
+          return
         end
 
-        return {} if unmatched_t_nodes.empty? || unmatched_d_nodes.empty?
+        yield nil
+        @emitter.emit_comment_attachment(attachment, leading: false, inline: true, source_lines: analysis.lines)
+      end
 
-        # Call the refiner
-        matches = @match_refiner.call(unmatched_t_nodes, unmatched_d_nodes, {
-          template_analysis: @template_analysis,
-          dest_analysis: @dest_analysis,
-        })
+      def shared_line_comment_attachment_for(node, analysis)
+        return unless node && analysis
+        return unless node.respond_to?(:start_line) && node.start_line
 
-        # Build result map: template node -> dest node
-        matches.each_with_object({}) do |match, h|
-          h[match.template_node] = match.dest_node
+        tracker = analysis.comment_tracker
+        leading_comments = tracker.leading_comments_before(node.start_line)
+        return if leading_comments.any? { |comment| comment[:block] }
+
+        inline_comment = tracker.inline_comment_at(inline_comment_line_for(node))
+        return unless leading_comments.any? || inline_comment
+
+        analysis.comment_attachment_for(
+          node,
+          line_num: node.start_line,
+          leading_comments: leading_comments,
+          inline_comment: inline_comment,
+        )
+      end
+
+      def inline_comment_line_for(node)
+        return unless node
+        return node.start_line if node.respond_to?(:pair?) && node.pair?
+        return node.start_line if node.respond_to?(:container?) && node.container?
+
+        node.end_line || node.start_line
+      end
+
+      def emit_container_trailing_lines(container_node, analysis)
+        range = trailing_container_line_range(container_node)
+        return unless range
+
+        region = shared_trailing_line_comment_region_for(range, analysis)
+        unless region && !region.empty?
+          emit_comment_and_blank_lines_in_range(range.begin, range.end, analysis)
+          return
+        end
+
+        emit_blank_lines_in_range(range.begin, region.start_line - 1, analysis)
+        @emitter.emit_comment_region(region, source_lines: analysis.lines)
+        emit_blank_lines_in_range(region.end_line + 1, range.end, analysis)
+      end
+
+      def container_has_trailing_comments?(container_node, analysis)
+        range = trailing_container_line_range(container_node)
+        return false unless range
+
+        range.any? do |line_num|
+          stripped = analysis.line_at(line_num).to_s.strip
+          comment_like_line?(stripped)
         end
       end
 
-      def compact_empty_container?(container_node)
-        container_node&.container? && container_node.mergeable_children.empty?
+      def trailing_container_line_range(container_node)
+        return unless container_node&.container?
+        return unless container_node.respond_to?(:start_line) && container_node.respond_to?(:end_line)
+        return unless container_node.start_line && container_node.end_line
+
+        children = container_node.mergeable_children
+        start_line = if children.any?
+          last_child = children.last
+          (last_child.end_line || last_child.start_line) + 1
+        else
+          container_node.start_line + 1
+        end
+        end_line = container_node.end_line - 1
+        return unless end_line >= start_line
+
+        start_line..end_line
+      end
+
+      def emit_comment_and_blank_lines_in_range(start_line, end_line, analysis)
+        return unless start_line && end_line
+        return if end_line < start_line
+
+        lines = []
+        (start_line..end_line).each do |line_num|
+          line = analysis.line_at(line_num)
+          next unless line
+
+          stripped = line.strip
+          next unless stripped.empty? || comment_like_line?(stripped)
+
+          lines << line
+        end
+
+        @emitter.emit_raw_lines(lines) if lines.any?
+      end
+
+      def shared_trailing_line_comment_region_for(range, analysis)
+        return unless range && analysis
+        return unless trailing_range_supports_shared_line_region?(range, analysis)
+
+        region = analysis.comment_region_for_range(range, kind: :trailing, full_line_only: true)
+        return unless region && !region.empty?
+
+        region
+      end
+
+      def trailing_range_supports_shared_line_region?(range, analysis)
+        range.each do |line_num|
+          stripped = analysis.line_at(line_num).to_s.strip
+          next if stripped.empty?
+          return false unless stripped.start_with?("//")
+          return false unless analysis.comment_tracker.full_line_comment?(line_num)
+        end
+
+        true
+      end
+
+      def comment_like_line?(stripped_line)
+        stripped_line.start_with?("//", "/*", "*", "*/")
+      end
+
+      def emit_freeze_block(freeze_node)
+        @emitter.emit_raw_lines(freeze_node.lines)
+      end
+
+      def emit_removed_destination_node_comments(node, analysis)
+        return unless node.respond_to?(:start_line) && node.start_line
+
+        leading_comments = analysis.comment_tracker.leading_comments_before(node.start_line)
+        emit_preferred_leading_comments_for(node, analysis)
+
+        inline_comment = removed_inline_comment_for(node, analysis)
+        if inline_comment
+          @emitter.emit_tracked_comment(normalize_comment_indent(
+            inline_comment.merge(
+              indent: current_emitter_indent,
+              full_line: true,
+              block: inline_comment[:block] || false,
+            ),
+          ))
+        end
+
+        emit_following_removed_node_blank_lines(node, analysis) if leading_comments.any? || inline_comment
+      end
+
+      def emit_following_removed_node_blank_lines(node, analysis)
+        line_num = (node.end_line || node.start_line) + 1
+        first_nonblank_line = line_num
+
+        while first_nonblank_line <= analysis.lines.length && analysis.comment_tracker.blank_line?(first_nonblank_line)
+          first_nonblank_line += 1
+        end
+
+        return if analysis.comment_tracker.full_line_comment?(first_nonblank_line)
+
+        while line_num <= analysis.lines.length && analysis.comment_tracker.blank_line?(line_num)
+          @emitter.emit_blank_line
+          line_num += 1
+        end
+      end
+
+      def removed_inline_comment_for(node, analysis)
+        line_num = inline_comment_line_for(node)
+        return unless line_num
+
+        region = analysis.comment_tracker.inline_comment_region_at(line_num)
+        tracked = Array(region&.metadata&.dig(:tracked_hashes)).first
+        return tracked if tracked
+
+        analysis.comment_tracker.inline_comment_at(line_num) || removed_inline_block_comment_at(line_num, analysis)
+      end
+
+      def removed_inline_block_comment_at(line_num, analysis)
+        line = analysis.line_at(line_num).to_s
+        return if line.empty?
+
+        start_idx = line.index("/*")
+        end_idx = start_idx && line.index("*/", start_idx + 2)
+        return unless start_idx && end_idx
+
+        before_comment = line[0...start_idx].to_s
+        after_comment = line[(end_idx + 2)..].to_s
+        return if before_comment.strip.empty?
+        return unless after_comment.strip.empty?
+
+        quote_count = before_comment.count('"') - before_comment.scan('\\"').count
+        return unless quote_count.even?
+
+        {
+          line: line_num,
+          indent: 0,
+          text: line[(start_idx + 2)...end_idx].to_s.strip,
+          full_line: false,
+          block: true,
+          raw: line[start_idx..(end_idx + 1)],
+        }
+      end
+
+      def emit_tracked_comments_with_internal_blank_lines(comments, analysis)
+        Array(comments).each_with_index do |comment, index|
+          emit_tracked_comment_preserving_raw_layout(comment, analysis)
+
+          next_comment = comments[index + 1]
+          next unless next_comment
+
+          emit_blank_lines_in_range(comment_end_line(comment) + 1, next_comment[:line] - 1, analysis)
+        end
+      end
+
+      def emit_tracked_comment_preserving_raw_layout(comment, analysis)
+        if multiline_block_comment?(comment)
+          lines = (comment[:line]..comment_end_line(comment)).map { |line_num| analysis.line_at(line_num) }.compact
+          @emitter.emit_raw_lines(lines) if lines.any?
+          return
+        end
+
+        @emitter.emit_tracked_comment(normalize_comment_indent(comment))
+      end
+
+      def multiline_block_comment?(comment)
+        comment && comment[:block] && comment_end_line(comment) > comment[:line]
+      end
+
+      def comment_end_line(comment)
+        return unless comment
+
+        comment[:end_line] || comment[:line]
+      end
+
+      def emit_document_prelude(analysis, nodes: [])
+        augmenter = document_comment_augmenter_for(analysis)
+        return unless augmenter
+
+        normalized_nodes = Array(nodes)
+        regions = []
+        preamble = augmenter.preamble_region
+        regions << preamble if preamble && !preamble.empty?
+
+        if normalized_nodes.any?
+          first_attachment = augmenter.attachment_for(normalized_nodes.first)
+          first_leading = first_attachment&.leading_region
+          if first_leading && !first_leading.empty?
+            duplicate = regions.any? do |region|
+              region.start_line == first_leading.start_line && region.end_line == first_leading.end_line
+            end
+            regions << first_leading unless duplicate
+          end
+        end
+
+        if normalized_nodes.empty?
+          augmenter.orphan_regions.each do |region|
+            regions << region if region && !region.empty?
+          end
+        end
+
+        regions.each do |region|
+          @emitter.emit_comment_region(region, source_lines: analysis.lines)
+        end
+
+        return if regions.empty?
+
+        last_region_end = regions.last.end_line
+        if normalized_nodes.any?
+          first_node_start = normalized_nodes.first.start_line
+          emit_blank_lines_in_range(last_region_end + 1, first_node_start - 1, analysis) if last_region_end && first_node_start
+        elsif last_region_end
+          emit_blank_lines_in_range(last_region_end + 1, analysis.lines.length, analysis)
+        end
+      end
+
+      def emit_document_postlude(analysis, fallback_node: nil)
+        augmenter = document_comment_augmenter_for(analysis)
+        postlude = augmenter&.postlude_region
+        return unless postlude && !postlude.empty?
+
+        if fallback_node && postlude.respond_to?(:start_line) && postlude.start_line
+          emit_blank_lines_in_range(fallback_node.end_line + 1, postlude.start_line - 1, analysis) if fallback_node.respond_to?(:end_line) && fallback_node.end_line
+        end
+
+        @emitter.emit_comment_region(postlude, source_lines: analysis.lines)
+      end
+
+      def document_comment_augmenter_for(analysis)
+        @document_comment_augmenters ||= {}
+        @document_comment_augmenters[analysis.object_id] ||= analysis.comment_augmenter
+      end
+
+      def emit_blank_lines_in_range(start_line, end_line, analysis)
+        return unless start_line && end_line
+        return if end_line < start_line
+
+        (start_line..end_line).each do |line_num|
+          @emitter.emit_blank_line if analysis.comment_tracker.blank_line?(line_num)
+        end
+      end
+
+      def emit_blank_lines_before_leading_comments(first_comment_line, analysis)
+        return unless first_comment_line
+
+        blank_lines = []
+        line_num = first_comment_line - 1
+        while line_num >= 1 && analysis.comment_tracker.blank_line?(line_num)
+          blank_lines << line_num
+          line_num -= 1
+        end
+
+        blank_lines.reverse_each { @emitter.emit_blank_line }
+      end
+
+      def normalize_comment_indent(comment)
+        return comment unless comment
+
+        comment.merge(indent: current_emitter_indent)
+      end
+
+      def current_emitter_indent
+        @emitter.indent_level * @emitter.indent_size
+      end
+
+      def compact_empty_container?(container_node, source_node, source_analysis)
+        return false unless container_node&.container?
+        return false unless container_node.mergeable_children.empty?
+
+        !container_has_trailing_comments?(source_node || container_node, source_analysis)
       end
 
       def compact_container_literal_for(container_node)
         container_node.object? ? "{}" : "[]"
       end
+
+      def build_refined_matches(template_nodes, dest_nodes, template_by_sig, dest_by_sig)
+        return {} unless @match_refiner
+
+        matched_sigs = template_by_sig.keys & dest_by_sig.keys
+
+        unmatched_template = template_nodes.reject do |node|
+          sig = @template_analysis.generate_signature(node)
+          sig && matched_sigs.include?(sig)
+        end
+
+        unmatched_dest = dest_nodes.reject do |node|
+          sig = @dest_analysis.generate_signature(node)
+          sig && matched_sigs.include?(sig)
+        end
+
+        return {} if unmatched_template.empty? || unmatched_dest.empty?
+
+        matches = @match_refiner.call(unmatched_template, unmatched_dest, {
+          template_analysis: @template_analysis,
+          dest_analysis: @dest_analysis,
+        })
+
+        matches.each_with_object({}) do |match, hash|
+          hash[match.template_node] = match.dest_node
+        end
+      end
+
     end
   end
 end

@@ -2,8 +2,7 @@
 
 module Json
   module Merge
-    # High-level merger for JSON/JSONC content.
-    # Orchestrates parsing, analysis, and conflict resolution.
+    # High-level merger for JSON / JSONC content.
     #
     # @example Basic usage
     #   merger = SmartMerger.new(template_content, dest_content)
@@ -30,6 +29,7 @@ module Json
       # @param signature_generator [Proc, nil] Custom signature generator
       # @param preference [Symbol, Hash] :destination, :template, or per-type Hash
       # @param add_template_only_nodes [Boolean] Whether to add nodes only found in template
+      # @param remove_template_missing_nodes [Boolean] Whether to remove nodes missing from template
       # @param freeze_token [String, nil] Token for freeze block markers
       # @param match_refiner [#call, nil] Match refiner for fuzzy matching
       # @param regions [Array<Hash>, nil] Region configurations for nested merging
@@ -43,6 +43,7 @@ module Json
         signature_generator: nil,
         preference: :destination,
         add_template_only_nodes: false,
+        remove_template_missing_nodes: false,
         freeze_token: nil,
         match_refiner: nil,
         regions: nil,
@@ -50,12 +51,15 @@ module Json
         node_typing: nil,
         **options
       )
+        @remove_template_missing_nodes = remove_template_missing_nodes
+
         super(
           template_content,
           dest_content,
           signature_generator: signature_generator,
           preference: preference,
           add_template_only_nodes: add_template_only_nodes,
+          remove_template_missing_nodes: remove_template_missing_nodes,
           freeze_token: freeze_token,
           match_refiner: match_refiner,
           regions: regions,
@@ -72,6 +76,7 @@ module Json
         {
           preference: @preference,
           add_template_only_nodes: @add_template_only_nodes,
+          remove_template_missing_nodes: @remove_template_missing_nodes,
           match_refiner: @match_refiner,
         }
       end
@@ -119,6 +124,7 @@ module Json
           @dest_analysis,
           preference: @preference,
           add_template_only_nodes: @add_template_only_nodes,
+          remove_template_missing_nodes: @remove_template_missing_nodes,
           match_refiner: @match_refiner,
           node_typing: @node_typing,
         )
@@ -139,12 +145,6 @@ module Json
         DestinationParseError
       end
 
-      private
-
-      # JSON FileAnalysis only accepts signature_generator, not freeze_token
-      def build_full_analysis_options
-        {signature_generator: @signature_generator}
-      end
     end
   end
 end

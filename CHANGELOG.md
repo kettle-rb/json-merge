@@ -20,12 +20,13 @@ Please file a bug if you notice a violation of semantic versioning.
 
 ### Added
 
-- Added documentation for the intentional family boundary that strict JSON remains outside the shared comment-normalization rollout; commented JSON-like inputs should continue to use `jsonc-merge`
+- Added JSONC coverage inside `json-merge`, including comment tracking, comment-preserving merges, and removal-mode comment promotion specs running through the `:json` grammar path
 
 ### Changed
 
-- Adopted the shared `Ast::Merge::Layout` contract for generic top-level JSON layout gaps, while keeping strict JSON outside the comment-normalization portion of the family rollout
-- Clarified that removed-node behavior in strict JSON remains structural rather than comment-oriented, so no comment-promotion semantics were added alongside the family-wide removal-mode work
+- `json-merge` now treats the tree-sitter JSON parser as JSONC-capable when comments are exposed, preserving document, leading, inline, nested, and postlude comments without requiring a separate parser selection
+- Folded the former `jsonc-merge` comment tracker, comment-aware emitter / resolver flow, freeze-node analysis, and removal-mode comment promotion behavior into `json-merge`
+- Documented `jsonc-merge` as a compatibility shim now that `json-merge` owns the JSONC-aware merge path
 - Adopted `Ast::Merge::TrailingGroups::DestIterate` for position-aware template-only object-member and array-item insertion, replacing local trailing-group plumbing with the shared family implementation
 
 ### Deprecated

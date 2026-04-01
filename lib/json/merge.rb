@@ -16,11 +16,10 @@ require "ast/merge"
 # This gem
 require_relative "merge/version"
 
-# Json::Merge provides a strict JSON file smart merge system using tree-sitter AST analysis.
-# It intelligently merges template and destination JSON files by identifying matching
-# keys and resolving differences using structural signatures.
-#
-# For commented JSON-like inputs, use the jsonc-merge gem instead.
+# Json::Merge provides a JSON / JSONC smart merge system using tree-sitter AST
+# analysis. It intelligently merges template and destination files by
+# identifying matching keys and resolving differences using structural
+# signatures while preserving comments when present.
 #
 # @example Basic usage
 #   template = File.read("template.json")
@@ -34,11 +33,9 @@ require_relative "merge/version"
 #   puts debug_result[:content]
 #   puts debug_result[:statistics]
 module Json
-  # Smart merge system for strict JSON files using tree-sitter AST analysis.
+  # Smart merge system for JSON and JSONC files using tree-sitter AST analysis.
   # Provides intelligent merging by understanding JSON structure
   # rather than treating files as plain text.
-  #
-  # For commented JSON-like inputs, use the jsonc-merge gem instead.
   #
   # @see SmartMerger Main entry point for merge operations
   # @see FileAnalysis Analyzes JSON structure
@@ -95,9 +92,11 @@ module Json
     #   end
     class DestinationParseError < ParseError; end
 
+    autoload :CommentTracker, "json/merge/comment_tracker"
     autoload :DebugLogger, "json/merge/debug_logger"
     autoload :Emitter, "json/merge/emitter"
     autoload :FileAnalysis, "json/merge/file_analysis"
+    autoload :FreezeNode, "json/merge/freeze_node"
     autoload :MergeResult, "json/merge/merge_result"
     autoload :NodeWrapper, "json/merge/node_wrapper"
     autoload :ConflictResolver, "json/merge/conflict_resolver"

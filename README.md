@@ -28,13 +28,14 @@ I've summarized my thoughts in [this blog post](https://dev.to/galtzo/hostile-ta
 
 ## 🌻 Synopsis
 
-Json::Merge is a standalone Ruby module that intelligently merges two versions of a strict JSON file using tree-sitter AST analysis. It's like a smart "git merge" specifically designed for JSON configuration files. Built on top of [ast-merge][ast-merge], it shares the same architecture as [prism-merge][prism-merge] for Ruby source files.
+Json::Merge is a standalone Ruby module that intelligently merges two versions of a JSON or JSONC file using tree-sitter AST analysis. It's like a smart "git merge" specifically designed for JSON configuration files. Built on top of [ast-merge][ast-merge], it shares the same architecture as [prism-merge][prism-merge] for Ruby source files.
 
-Comments are out of scope for strict JSON. For commented JSON-like sources, use the [jsonc-merge][jsonc-merge] gem instead.
+When the underlying tree-sitter JSON parser surfaces JSONC comments, `json-merge` now preserves them directly. The [jsonc-merge][jsonc-merge] gem remains available as a compatibility shim for older integrations that still depend on that gem name.
 
 ### Key Features
 
   - **Tree-Sitter Powered**: Uses tree-sitter-json for accurate AST parsing
+  - **JSONC-Aware**: Preserves `//` and `/* */` comments when the parser exposes them
   - **Intelligent**: Matches objects and arrays by structural signatures
   - **Fuzzy Property Matching**: `ObjectMatchRefiner` matches similar property names
     (e.g., `databaseUrl` ↔ `database_url`) using Levenshtein distance for naming convention differences
@@ -84,8 +85,8 @@ The `*-merge` gem family provides intelligent, AST-based merging for various fil
 | [bash-merge][bash-merge]                 |                 [![Version][bash-merge-gem-i]][bash-merge-gem] <br/> [![CI][bash-merge-ci-i]][bash-merge-ci]                 | Bash                 | [tree-sitter-bash][ts-bash] (via tree_haver)                                                          | Smart merge for Bash scripts                                                     |
 | [commonmarker-merge][commonmarker-merge] | [![Version][commonmarker-merge-gem-i]][commonmarker-merge-gem] <br/> [![CI][commonmarker-merge-ci-i]][commonmarker-merge-ci] | Markdown             | [Commonmarker][commonmarker] (via tree_haver)                                                         | Smart merge for Markdown (CommonMark via comrak Rust)                            |
 | [dotenv-merge][dotenv-merge]             |             [![Version][dotenv-merge-gem-i]][dotenv-merge-gem] <br/> [![CI][dotenv-merge-ci-i]][dotenv-merge-ci]             | Dotenv               | internal                                                                                              | Smart merge for `.env` files                                                     |
-| [json-merge][json-merge]                 |                 [![Version][json-merge-gem-i]][json-merge-gem] <br/> [![CI][json-merge-ci-i]][json-merge-ci]                 | JSON                 | [tree-sitter-json][ts-json] (via tree_haver)                                                          | Smart merge for JSON files                                                       |
-| [jsonc-merge][jsonc-merge]               |               [![Version][jsonc-merge-gem-i]][jsonc-merge-gem] <br/> [![CI][jsonc-merge-ci-i]][jsonc-merge-ci]               | JSONC                | [tree-sitter-jsonc][ts-jsonc] (via tree_haver)                                                        | ⚠️ Proof of concept; Smart merge for JSON with Comments                          |
+| [json-merge][json-merge]                 |                 [![Version][json-merge-gem-i]][json-merge-gem] <br/> [![CI][json-merge-ci-i]][json-merge-ci]                 | JSON / JSONC         | [tree-sitter-json][ts-json] (via tree_haver)                                                          | Smart merge for JSON and JSONC files                                             |
+| [jsonc-merge][jsonc-merge]               |               [![Version][jsonc-merge-gem-i]][jsonc-merge-gem] <br/> [![CI][jsonc-merge-ci-i]][jsonc-merge-ci]               | JSONC                | compatibility shim                                                                                    | Compatibility wrapper that depends on `json-merge`                               |
 | [markdown-merge][markdown-merge]         |         [![Version][markdown-merge-gem-i]][markdown-merge-gem] <br/> [![CI][markdown-merge-ci-i]][markdown-merge-ci]         | Markdown             | [Commonmarker][commonmarker] / [Markly][markly] (via tree_haver), [Parslet][parslet]                  | **Foundation**: Shared base for Markdown mergers with inner code block merging   |
 | [markly-merge][markly-merge]             |             [![Version][markly-merge-gem-i]][markly-merge-gem] <br/> [![CI][markly-merge-ci-i]][markly-merge-ci]             | Markdown             | [Markly][markly] (via tree_haver)                                                                     | Smart merge for Markdown (CommonMark via cmark-gfm C)                            |
 | [prism-merge][prism-merge]               |               [![Version][prism-merge-gem-i]][prism-merge-gem] <br/> [![CI][prism-merge-ci-i]][prism-merge-ci]               | Ruby                 | [Prism][prism] (`prism` std lib gem)                                                                  | Smart merge for Ruby source files                                                |
@@ -338,8 +339,9 @@ NOTE: Be prepared to track down certs for signed gems and add them the same way 
 
 This gem requires the `tree-sitter-json` parser library to be installed on your system.
 The parser is a native shared library (`.so` on Linux, `.dylib` on macOS) that provides
-JSON syntax parsing capabilities. For JSONC (JSON with Comments) support, use the
-[jsonc-merge][jsonc-merge] gem instead.
+JSON syntax parsing capabilities. Recent parser support exposed through `tree_haver`
+also allows `json-merge` to preserve JSONC comments directly, so the separate
+`jsonc-merge` gem is now only a compatibility shim.
 
 #### Option 1: Pre-built Binaries (Recommended)
 
