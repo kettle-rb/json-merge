@@ -2,11 +2,9 @@
 
 module Json
   module Merge
-    # Version information for Json::Merge
     module Version
-      # Current version of the json-merge gem
       VERSION = "2.0.0"
     end
-    VERSION = Version::VERSION # traditional location
+    VERSION = Version::VERSION # Traditional Constant Location
   end
 end
