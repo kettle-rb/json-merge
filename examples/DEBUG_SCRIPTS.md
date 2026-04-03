@@ -2,7 +2,7 @@
 
 This directory contains backend-focused debug scripts for `json-merge`.
 
-These scripts were migrated from the old `jsonc-merge` example set after JSONC support moved into `json-merge`. They now exercise the unified `Json::Merge` API and the `tree_haver` JSON parser path, which can parse both JSON and JSONC in this workspace.
+These scripts exercise the unified `Json::Merge` API and the `tree_haver` JSON parser path, which can parse both JSON and JSONC.
 
 ## Available scripts
 
@@ -123,4 +123,3 @@ For a healthy backend, you should usually see:
 ## Notes
 
 - For general installation, parser setup, and JSONC support details, see the main [`README.md`](../README.md).
-- The `jsonc-merge` shim no longer owns example scripts; all active examples live here in `json-merge`.
