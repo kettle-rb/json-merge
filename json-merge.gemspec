@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
   spec.summary = "🍲 Intelligent JSON and JSONC file merging using tree-sitter AST analysis"
   spec.description = "🍲 Json::Merge provides smart JSON file merging that understands JSON structure and now preserves JSONC comments when the underlying tree-sitter JSON parser exposes them. Perfect for merging package.json, tsconfig.json, devcontainer.json, VS Code settings, and other JSON / JSONC configuration files. The jsonc-merge gem now serves as a compatibility shim on top of json-merge."
   spec.homepage = "https://github.com/kettle-rb/json-merge"
-  spec.licenses = ["AGPL-3.0-only", "PolyForm-Small-Business-1.0.0", "LicenseRef-Big-Time-Public-License"]
+  spec.licenses = ["AGPL-3.0-only"]
   spec.required_ruby_version = ">= 3.2.0"
 
   # Linux distros often package gems and securely certify them independent
