@@ -1,17 +1,1 @@
-# NOTE: tree-sitter-json parser must be installed separately via your package manager
-#       e.g., `apt install libtree-sitter-json-dev` or built from source.
-#
-# TreeHaver provides a unified interface to tree-sitter. ruby_tree_sitter, tree_haver,
-# and ast-merge are provided by the templating gemfile stack (templating.gemfile +
-# templating_local.gemfile). Only parser backends specific to json-merge belong here.
-
-# FFI Backend - works on MRI, JRuby, and TruffleRuby
-gem "ffi", require: false # DO NOT LOAD, because conflicts with MRI
-
-# Use the sibling-workspace path-based dependencies for shared kettle-rb development.
-eval_gemfile "tree_sitter_local.gemfile"
-
-platform :mri do
-  # Rust Backend
-  gem "tree_stump", "~> 0.2"
-end
+eval_gemfile "tree_sitter/r4/libs.gemfile"
