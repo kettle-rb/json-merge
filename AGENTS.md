@@ -228,6 +228,7 @@ mise exec -C /path/to/project -- bin/kettle-soup-cover -d
 ```
 
 **Key ENV variables** (set in `mise.toml`, with local overrides in `.env.local`):
+
 ❌ **AVOID** when possible:
 
 - `run_in_terminal` for information gathering
@@ -337,7 +338,6 @@ end
 
 Use dependency tags to conditionally skip tests when optional dependencies are not available:
 
-**Available tags**:
 ✅ **PREFERRED** — Use internal tools:
 
 - `grep_search` instead of `grep` command
