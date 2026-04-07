@@ -26,6 +26,7 @@ RSpec.describe Json::Merge::SmartMerger do
     it_behaves_like "destination-only nodes preservation"
     it_behaves_like "invalid template detection"
     it_behaves_like "invalid destination detection"
+    it_behaves_like "multi-byte character (emoji) handling"
   end
 
   # ============================================================
@@ -46,6 +47,7 @@ RSpec.describe Json::Merge::SmartMerger do
     it_behaves_like "destination-only nodes preservation"
     it_behaves_like "invalid template detection"
     it_behaves_like "invalid destination detection"
+    it_behaves_like "multi-byte character (emoji) handling"
   end
 
   # ============================================================
@@ -66,6 +68,7 @@ RSpec.describe Json::Merge::SmartMerger do
     it_behaves_like "destination-only nodes preservation"
     it_behaves_like "invalid template detection"
     it_behaves_like "invalid destination detection"
+    it_behaves_like "multi-byte character (emoji) handling"
   end
 
   # ============================================================
@@ -86,6 +89,7 @@ RSpec.describe Json::Merge::SmartMerger do
     it_behaves_like "destination-only nodes preservation"
     it_behaves_like "invalid template detection"
     it_behaves_like "invalid destination detection"
+    it_behaves_like "multi-byte character (emoji) handling"
   end
 
   # ============================================================
@@ -106,5 +110,6 @@ RSpec.describe Json::Merge::SmartMerger do
     it_behaves_like "destination-only nodes preservation"
     it_behaves_like "invalid template detection"
     it_behaves_like "invalid destination detection"
+    it_behaves_like "multi-byte character (emoji) handling"
   end
 end

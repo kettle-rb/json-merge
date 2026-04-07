@@ -299,6 +299,62 @@ RSpec.shared_examples "invalid template detection" do
   end
 end
 
+RSpec.shared_examples "multi-byte character (emoji) handling" do
+  describe "multi-byte character regression" do
+    it "does not duplicate keys when destination contains emoji values" do
+      template_json = '{"name": "default"}'
+      dest_json = '{"emoji": "🪙", "name": "custom"}'
+      merger = described_class.new(
+        template_json,
+        dest_json,
+        preference: :destination,
+        add_template_only_nodes: true,
+      )
+      output = merger.merge_result.to_json
+      expect(output.scan('"name"').size).to eq(1)
+    end
+
+    it "preserves emoji values in merged output" do
+      template_json = '{"key": "template"}'
+      dest_json = '{"key": "🍲 special"}'
+      merger = described_class.new(
+        template_json,
+        dest_json,
+        preference: :destination,
+      )
+      output = merger.merge_result.to_json
+      expect(output).to include("🍲 special")
+    end
+
+    it "handles multiple emoji without duplicating keys" do
+      template_json = '{"x": "1", "y": "2"}'
+      dest_json = '{"e1": "🍲", "e2": "🪙", "x": "a", "y": "b"}'
+      merger = described_class.new(
+        template_json,
+        dest_json,
+        preference: :destination,
+        add_template_only_nodes: true,
+      )
+      output = merger.merge_result.to_json
+      expect(output.scan('"x"').size).to eq(1)
+      expect(output.scan('"y"').size).to eq(1)
+    end
+
+    it "handles CJK characters without duplicating keys" do
+      template_json = '{"lang": "en"}'
+      dest_json = '{"greeting": "こんにちは", "lang": "ja"}'
+      merger = described_class.new(
+        template_json,
+        dest_json,
+        preference: :destination,
+        add_template_only_nodes: true,
+      )
+      output = merger.merge_result.to_json
+      expect(output.scan('"lang"').size).to eq(1)
+    end
+  end
+end
+
 RSpec.shared_examples "invalid destination detection" do
   let(:template_json) { '{"name": "test"}' }
   let(:invalid_dest) { '{ "unclosed": ' }
