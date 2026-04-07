@@ -40,6 +40,7 @@ Please file a bug if you notice a violation of semantic versioning.
   cursor-based positional matching, instead of being treated as a single node.
   While duplicate keys are invalid in JSON per RFC 7159, the recursive merge
   already scopes each level, and this fix ensures correctness for any edge cases.
+- Fixed multi-byte character (emoji) handling — upstream `ast-merge` `byteslice` → `slice` fix prevents corruption when merging content with multi-byte characters
 
 ### Security
 
