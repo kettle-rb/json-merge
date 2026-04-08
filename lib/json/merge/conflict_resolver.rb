@@ -51,6 +51,7 @@ module Json
 
           # Clear emitter for fresh merge
           @emitter.clear
+          @emitted_leading_comment_texts = ::Set.new
 
           emit_document_prelude(@dest_analysis, nodes: dest_statements)
 
@@ -490,6 +491,15 @@ module Json
           return
         end
 
+        # Bidirectional dedup: skip this region if an identical comment block
+        # was already emitted by a preceding node (from either source).
+        normalized = region.normalized_content
+        if normalized && !normalized.empty? && @emitted_leading_comment_texts&.include?(normalized)
+          emit_blank_lines_in_range((region.end_line || node.start_line).to_i + 1, node.start_line.to_i - 1, analysis)
+          return
+        end
+        @emitted_leading_comment_texts&.add(normalized) if normalized && !normalized.empty?
+
         emit_blank_lines_before_leading_comments(region.start_line, analysis)
         @emitter.emit_comment_attachment(attachment, leading: true, inline: false, source_lines: analysis.lines)
         emit_blank_lines_in_range((region.end_line || node.start_line).to_i + 1, node.start_line.to_i - 1, analysis)
@@ -499,7 +509,18 @@ module Json
         return unless node&.respond_to?(:start_line) && node.start_line
 
         leading = analysis.comment_tracker.leading_comments_before(node.start_line)
-        emit_blank_lines_before_leading_comments(leading.first[:line], analysis) if leading.any?
+        return if leading.empty?
+
+        # Bidirectional dedup: build normalized text from tracked comments
+        # and skip if already emitted by a preceding node.
+        normalized = leading.map { |c| c[:text].to_s.strip }.join("\n")
+        if @emitted_leading_comment_texts&.include?(normalized)
+          emit_blank_lines_in_range(comment_end_line(leading.last) + 1, node.start_line - 1, analysis)
+          return
+        end
+        @emitted_leading_comment_texts&.add(normalized)
+
+        emit_blank_lines_before_leading_comments(leading.first[:line], analysis)
         emit_tracked_comments_with_internal_blank_lines(leading, analysis)
 
         emit_blank_lines_in_range(comment_end_line(leading.last) + 1, node.start_line - 1, analysis) if leading.any?
