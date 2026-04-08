@@ -65,6 +65,9 @@ module Json
 
           emit_document_postlude(@dest_analysis, fallback_node: dest_statements.last)
 
+          # Normalize consecutive blank lines left behind by comment dedup or node removal
+          @emitter.normalize_consecutive_blank_lines!
+
           # Transfer emitter output to result
           emitted_content = @emitter.to_s
           unless emitted_content.empty?
