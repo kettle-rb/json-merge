@@ -40,9 +40,11 @@ RSpec.describe "Json::Merge JSONC file analysis behavior", :json_grammar do
 
       expect(analysis.comment_capability).to be_a(Ast::Merge::Comment::Capability)
       expect(analysis.comment_capability.source_augmented?).to be true
-      expect(attachment.leading_region.normalized_content).to eq("Header docs")
+      # Line-1 comment separated by a gap is preamble, not owned by the first node
+      expect(attachment.leading_region).to be_nil
+      expect(augmenter.preamble_region).not_to be_nil
+      expect(augmenter.preamble_region.normalized_content).to eq("Header docs")
       expect(augmenter.postlude_region.normalized_content).to eq("Footer docs")
-      expect(analysis.comment_attachment_for(owner).leading_region.normalized_content).to eq("Header docs")
     end
 
     it "builds shared line comment nodes while leaving block comments out of the line-comment adapter" do

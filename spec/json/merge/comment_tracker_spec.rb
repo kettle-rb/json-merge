@@ -264,7 +264,10 @@ RSpec.describe Json::Merge::CommentTracker do
 
       expect(augmenter.capability).to be_a(Ast::Merge::Comment::Capability)
       expect(augmenter.capability.source_augmented?).to be true
-      expect(attachment.leading_region.normalized_content).to eq("Header docs")
+      # Line-1 comment separated by a gap is preamble, not owned by the first node
+      expect(attachment.leading_region).to be_nil
+      expect(augmenter.preamble_region).not_to be_nil
+      expect(augmenter.preamble_region.normalized_content).to eq("Header docs")
       expect(augmenter.postlude_region.normalized_content).to eq("Footer docs")
     end
 
