@@ -221,7 +221,7 @@ module Json
                 key_node = pair_child
                 break
               end
-            rescue Exception
+            rescue StandardError
               next
             end
           end

@@ -614,7 +614,7 @@ module Json
           container_node.start_line + 1
         end
         end_line = container_node.end_line - 1
-        return unless end_line >= start_line
+        return if end_line >= start_line
 
         start_line..end_line
       end
@@ -727,7 +727,7 @@ module Json
         return unless after_comment.strip.empty?
 
         quote_count = before_comment.count('"') - before_comment.scan('\\"').count
-        return unless quote_count.even?
+        return if quote_count.even?
 
         {
           line: line_num,

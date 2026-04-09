@@ -5,14 +5,16 @@ require "json/merge"
 
 RSpec.describe "Json::Merge JSONC conflict resolver", :json_grammar do
   describe Json::Merge::ConflictResolver do
-    AnalysisDouble = Struct.new(:lines, :comment_tracker) do
-      def line_at(line_num)
-        lines[line_num - 1]
-      end
+    before do
+      stub_const("AnalysisDouble", Struct.new(:lines, :comment_tracker) do
+        def line_at(line_num)
+          lines[line_num - 1]
+        end
 
-      def comment_region_for_range(range, kind:, full_line_only: false)
-        comment_tracker.comment_region_for_range(range, kind: kind, full_line_only: full_line_only)
-      end
+        def comment_region_for_range(range, kind:, full_line_only: false)
+          comment_tracker.comment_region_for_range(range, kind: kind, full_line_only: full_line_only)
+        end
+      end)
     end
 
     def resolve_jsonc(template_source, destination_source, **options)
