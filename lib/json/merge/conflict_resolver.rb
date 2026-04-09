@@ -897,7 +897,6 @@ module Json
           hash[match.template_node] = match.dest_node
         end
       end
-
     end
   end
 end

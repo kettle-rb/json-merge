@@ -144,7 +144,6 @@ module Json
       def destination_parse_error_class
         DestinationParseError
       end
-
     end
   end
 end
