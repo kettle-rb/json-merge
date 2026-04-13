@@ -3,7 +3,7 @@
 require "spec_helper"
 require "ast/merge/rspec/shared_examples"
 
-RSpec.describe "json comment behavior matrix", :json_grammar, :mri_backend do
+RSpec.describe Json::Merge::SmartMerger, "comment behavior matrix", :json_grammar, :mri_backend do
   extend Ast::Merge::RSpec::CommentBehaviorMatrixAdapters
 
   around do |example|
