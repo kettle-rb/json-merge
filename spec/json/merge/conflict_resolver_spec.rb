@@ -686,7 +686,7 @@ RSpec.describe Json::Merge::ConflictResolver do
   describe "dedup debug warnings" do
     it "logs when the JSON leading-comment dedup guard fires" do
       resolver = described_class.allocate
-      resolver.instance_variable_set(:@emitted_leading_comment_texts, ::Set["duplicate"])
+      resolver.instance_variable_set(:@emitted_leading_comment_texts, Set["duplicate"])
       resolver.instance_variable_set(:@emitter, double("emitter"))
 
       node = double("node", start_line: 4)
