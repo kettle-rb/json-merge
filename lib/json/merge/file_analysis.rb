@@ -49,10 +49,10 @@ module Json
       end
 
       def comment_support_style
-        @comment_support_style ||= Ast::Merge::Comment::SupportStyle.source_augmented_synthetic(
+        @comment_support_style ||= shared_comment_support_style(
           source: :json_source,
-          capability: comment_capability.level,
           style: :c_style_line,
+          read_strategy: :source_augmented_synthetic,
         )
       end
 
@@ -151,18 +151,20 @@ module Json
       end
 
       def comment_attachment_for(owner, line_num: nil, **options)
-        merge_comment_attachment_with_layout(
+        shared_comment_attachment_for(
           owner,
-          @comment_tracker.comment_attachment_for(owner, line_num: line_num, **options),
+          tracker_attachment: @comment_tracker.comment_attachment_for(owner, line_num: line_num, **options),
+          line_num: line_num,
           **options,
         )
       end
 
-      private
-
-      def comment_augmenter_default_owners
-        statements.select { |statement| statement.respond_to?(:start_line) && statement.respond_to?(:end_line) }
+      # @return [Symbol]
+      def comment_attachment_strategy
+        :augmenter_preferred_tracker_layout
       end
+
+      private
 
       def layout_augmenter_default_owners
         pairs = root_pairs.select { |pair| pair.respond_to?(:start_line) && pair.respond_to?(:end_line) }

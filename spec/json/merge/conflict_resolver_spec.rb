@@ -216,6 +216,35 @@ RSpec.describe Json::Merge::ConflictResolver do
           expect(content).to include("template-value").or include("2.0.0")
         end
       end
+
+      it "uses the chosen side's inline comments when template content wins" do
+        template_analysis = Json::Merge::FileAnalysis.new(<<~JSON)
+          {
+            "name": "template-value" // template inline
+          }
+        JSON
+        dest_analysis = Json::Merge::FileAnalysis.new(<<~JSON)
+          {
+            "name": "dest-value" // dest inline
+          }
+        JSON
+
+        skip "FileAnalysis not valid" unless template_analysis.valid? && dest_analysis.valid?
+
+        resolver = described_class.new(
+          template_analysis,
+          dest_analysis,
+          preference: :template,
+        )
+        result = Json::Merge::MergeResult.new
+
+        resolver.resolve(result)
+
+        content = result.to_json
+        expect(content).to include("template-value")
+        expect(content).to include("template inline")
+        expect(content).not_to include("dest inline")
+      end
     end
 
     context "with per-node-type preference" do

@@ -14,9 +14,9 @@ RSpec.describe "json comment behavior matrix", :json_grammar, :mri_backend do
 
   include_examples "Ast::Merge::CommentBehaviorMatrix" do
     let(:comment_matrix_default_indent) { "  " }
-    line_based_comment_matrix_adapter(
-      analysis_class: Json::Merge::FileAnalysis,
-      merger_class: Json::Merge::SmartMerger,
+      line_based_comment_matrix_adapter(
+        analysis_class: Json::Merge::FileAnalysis,
+        merger_class: Json::Merge::SmartMerger,
       source_builder: lambda do |*lines|
         rendered_lines = lines.map(&:dup)
         first_structural_index = rendered_lines.index { |line| line.match?(/^\s*"/) } || rendered_lines.length
@@ -56,10 +56,6 @@ RSpec.describe "json comment behavior matrix", :json_grammar, :mri_backend do
         line = %(  "#{name}": #{value})
         inline ? "#{line} // #{inline}" : line
       end,
-      capabilities: {
-        floating_leading_regions: "gap-separated leading docs are not yet surfaced as floating attachment regions",
-        matched_inline_comment_preference: "destination inline comments remain authoritative even when template content wins",
-      },
     )
   end
 end

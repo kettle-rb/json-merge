@@ -249,6 +249,13 @@ module Json
               fallback_analysis: template_analysis,
             )
             comment_attachment = shared_line_comment_attachment_for(comment_source_node, comment_source_analysis)
+            inline_source_node, inline_source_analysis = preferred_inline_source(
+              template_node,
+              template_analysis,
+              dest_node,
+              dest_analysis,
+            )
+            inline_attachment = shared_line_comment_attachment_for(inline_source_node, inline_source_analysis)
 
             emit_preferred_leading_comments_for(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment)
             trailing_source_node, trailing_source_analysis = preferred_container_comment_source(
@@ -260,15 +267,15 @@ module Json
             compact_source_node = trailing_source_node || dest_value || template_value
 
             if compact_empty_container?(template_value, compact_source_node, trailing_source_analysis)
-              emit_with_preferred_inline_comment(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment) do |inline_text|
+              emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
                 @emitter.emit_pair(key_name, compact_container_literal_for(template_value), inline_comment: inline_text)
               end
             elsif template_value.object?
-              emit_with_preferred_inline_comment(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment) do |inline_text|
+              emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
                 @emitter.emit_nested_object_start(key_name, inline_comment: inline_text)
               end
             elsif template_value.array?
-              emit_with_preferred_inline_comment(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment) do |inline_text|
+              emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
                 @emitter.emit_array_start(key_name, inline_comment: inline_text)
               end
             end
@@ -383,6 +390,7 @@ module Json
         source_node = comment_source_node || node
         source_analysis = comment_source_node ? comment_analysis : analysis
         source_attachment = shared_line_comment_attachment_for(source_node, source_analysis)
+        inline_attachment = shared_line_comment_attachment_for(node, analysis)
 
         emit_preferred_leading_comments_for(source_node, source_analysis, shared_attachment: source_attachment)
 
@@ -398,15 +406,15 @@ module Json
               container_comment_source = source_value_node || value_node
 
               if compact_empty_container?(value_node, container_comment_source, source_analysis)
-                emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+                emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
                   @emitter.emit_pair(key, compact_container_literal_for(value_node), inline_comment: inline_text) if key
                 end
               elsif value_node.object?
-                emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+                emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
                   @emitter.emit_nested_object_start(key, inline_comment: inline_text)
                 end
               elsif value_node.array?
-                emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+                emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
                   @emitter.emit_array_start(key, inline_comment: inline_text)
                 end
               end
@@ -425,7 +433,7 @@ module Json
                 end
               end
             else
-              emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+              emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
                 @emitter.emit_pair(key, value_node.text, inline_comment: inline_text) if key
               end
             end
@@ -450,7 +458,7 @@ module Json
           end
         elsif node.start_line && node.end_line
           if node.start_line == node.end_line
-            emit_with_preferred_inline_comment(source_node, source_analysis, shared_attachment: source_attachment) do |inline_text|
+            emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
               @emitter.emit_array_element(node.text, inline_comment: inline_text)
             end
           else
@@ -465,10 +473,18 @@ module Json
       end
 
       def preferred_comment_source(node, analysis, fallback_node: nil, fallback_analysis: nil)
-        return [node, analysis] if node_has_emittable_comments?(node, analysis)
-        return [fallback_node, fallback_analysis] if fallback_node && node_has_emittable_comments?(fallback_node, fallback_analysis)
+        return [node, analysis] if node_has_emittable_leading_comments?(node, analysis)
+        return [fallback_node, fallback_analysis] if fallback_node && node_has_emittable_leading_comments?(fallback_node, fallback_analysis)
 
         [node, analysis]
+      end
+
+      def preferred_inline_source(template_node, template_analysis, dest_node, dest_analysis)
+        if preference_for_pair(template_node, dest_node) == :destination
+          [dest_node, dest_analysis]
+        else
+          [template_node, template_analysis]
+        end
       end
 
       def preferred_container_comment_source(node, analysis, fallback_node: nil, fallback_analysis: nil)
@@ -478,11 +494,10 @@ module Json
         [node, analysis]
       end
 
-      def node_has_emittable_comments?(node, analysis)
+      def node_has_emittable_leading_comments?(node, analysis)
         return false unless node&.respond_to?(:start_line) && node.start_line
 
-        analysis.comment_tracker.leading_comments_before(node.start_line).any? ||
-          !inline_comment_text_for(node, analysis).nil?
+        analysis.comment_tracker.leading_comments_before(node.start_line).any?
       end
 
       def emit_preferred_leading_comments_for(node, analysis, shared_attachment: nil)
