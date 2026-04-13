@@ -637,7 +637,7 @@ module Json
           container_node.start_line + 1
         end
         end_line = container_node.end_line - 1
-        return if end_line >= start_line
+        return if end_line < start_line
 
         start_line..end_line
       end
@@ -836,14 +836,31 @@ module Json
 
       def emit_document_postlude(analysis, fallback_node: nil)
         augmenter = document_comment_augmenter_for(analysis)
+        regions = []
         postlude = augmenter&.postlude_region
-        return unless postlude && !postlude.empty?
+        regions << postlude if postlude && !postlude.empty?
 
-        if fallback_node && postlude.respond_to?(:start_line) && postlude.start_line
-          emit_blank_lines_in_range(fallback_node.end_line + 1, postlude.start_line - 1, analysis) if fallback_node.respond_to?(:end_line) && fallback_node.end_line
+        if fallback_node
+          last_attachment = augmenter&.attachment_for(fallback_node)
+          last_trailing = last_attachment&.trailing_region
+          if last_trailing && !last_trailing.empty?
+            duplicate = regions.any? do |region|
+              region.start_line == last_trailing.start_line && region.end_line == last_trailing.end_line
+            end
+            regions << last_trailing unless duplicate
+          end
         end
 
-        @emitter.emit_comment_region(postlude, source_lines: analysis.lines)
+        return if regions.empty?
+
+        first_region = regions.first
+        if fallback_node && first_region.respond_to?(:start_line) && first_region.start_line
+          emit_blank_lines_in_range(fallback_node.end_line + 1, first_region.start_line - 1, analysis) if fallback_node.respond_to?(:end_line) && fallback_node.end_line
+        end
+
+        regions.each do |region|
+          @emitter.emit_comment_region(region, source_lines: analysis.lines)
+        end
       end
 
       def document_comment_augmenter_for(analysis)

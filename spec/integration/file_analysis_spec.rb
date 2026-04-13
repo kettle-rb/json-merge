@@ -160,5 +160,16 @@ RSpec.describe "Json::Merge::FileAnalysis Integration", :json_grammar do
       expect(attachment.leading_controls_output?).to be(true)
       expect(attachment.trailing_controls_output?).to be(false)
     end
+
+    it "surfaces inferred layout gaps through comment attachments for root-pair owners" do
+      analysis = Json::Merge::FileAnalysis.new(json_with_layout_gaps)
+      first_owner = analysis.root_pairs.first
+
+      attachment = analysis.comment_attachment_for(first_owner)
+
+      expect(attachment.leading_gap&.kind).to eq(:preamble)
+      expect(attachment.trailing_gap&.kind).to eq(:interstitial)
+      expect(attachment.layout_gaps.map { |gap| gap.start_line..gap.end_line }).to eq([2..2, 4..4])
+    end
   end
 end

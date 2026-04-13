@@ -215,7 +215,8 @@ module Json
 
           unless key_node
             begin
-              child.each do |pair_child|
+              child_each = child.method(:each)
+              child_each.call do |pair_child|
                 pair_child_type = pair_child.type.to_s
                 next if pair_child_type == ":" || pair_child_type == "comment"
                 key_node = pair_child

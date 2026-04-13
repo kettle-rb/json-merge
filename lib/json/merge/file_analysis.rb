@@ -48,6 +48,14 @@ module Json
         @comment_capability ||= comment_tracker.augment(owners: []).capability
       end
 
+      def comment_support_style
+        @comment_support_style ||= Ast::Merge::Comment::SupportStyle.source_augmented_synthetic(
+          source: :json_source,
+          capability: comment_capability.level,
+          style: :c_style_line,
+        )
+      end
+
       def comment_nodes
         comment_tracker.comment_nodes
       end
@@ -99,21 +107,26 @@ module Json
       end
 
       def root_node
-        return unless valid?
+        return @root_node if defined?(@root_node)
+        return @root_node = nil unless valid?
 
-        NodeWrapper.new(@ast.root_node, lines: @lines, source: @source)
+        @root_node = NodeWrapper.new(@ast.root_node, lines: @lines, source: @source)
       end
 
       def root_object
-        return unless valid?
+        return @root_object if defined?(@root_object)
+        return @root_object = nil unless valid?
 
         root = @ast.root_node
-        return unless root
+        return @root_object = nil unless root
 
         root.each do |child|
-          return NodeWrapper.new(child, lines: @lines, source: @source) if child.type.to_s == "object"
+          if child.type.to_s == "object"
+            return @root_object = NodeWrapper.new(child, lines: @lines, source: @source)
+          end
         end
-        nil
+
+        @root_object = nil
       end
 
       def root_object_open_line
@@ -131,20 +144,31 @@ module Json
       end
 
       def root_pairs
-        obj = root_object
-        return [] unless obj
-
-        obj.pairs
+        @root_pairs ||= begin
+          obj = root_object
+          obj ? obj.pairs : []
+        end
       end
 
       def comment_attachment_for(owner, line_num: nil, **options)
-        @comment_tracker.comment_attachment_for(owner, line_num: line_num, **options)
+        merge_comment_attachment_with_layout(
+          owner,
+          @comment_tracker.comment_attachment_for(owner, line_num: line_num, **options),
+          **options,
+        )
       end
 
       private
 
       def comment_augmenter_default_owners
         statements.select { |statement| statement.respond_to?(:start_line) && statement.respond_to?(:end_line) }
+      end
+
+      def layout_augmenter_default_owners
+        pairs = root_pairs.select { |pair| pair.respond_to?(:start_line) && pair.respond_to?(:end_line) }
+        return pairs unless pairs.empty?
+
+        comment_augmenter_default_owners
       end
 
       def root_merge_node

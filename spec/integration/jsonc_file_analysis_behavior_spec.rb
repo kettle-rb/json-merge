@@ -47,6 +47,17 @@ RSpec.describe "Json::Merge JSONC file analysis behavior", :json_grammar do
       expect(augmenter.postlude_region.normalized_content).to eq("Footer docs")
     end
 
+    it "reports a source-augmented synthetic support style for JSONC comments" do
+      analysis = described_class.new("// Header docs\n{}\n")
+
+      expect(analysis.comment_support_style).to be_a(Ast::Merge::Comment::SupportStyle)
+      expect(analysis.comment_support_style.source_augmented_synthetic?).to be true
+      expect(analysis.comment_support_style.synthetic_write?).to be true
+      expect(analysis.comment_support_style.details[:capability]).to eq(:source_augmented)
+      expect(analysis.comment_support_style.details[:source]).to eq(:json_source)
+      expect(analysis.comment_support_style.details[:style]).to eq(:c_style_line)
+    end
+
     it "builds shared line comment nodes while leaving block comments out of the line-comment adapter" do
       line_analysis = described_class.new("// Header docs\n{}\n")
       block_analysis = described_class.new("/* Block docs */\n{}\n")
