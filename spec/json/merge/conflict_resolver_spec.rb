@@ -653,4 +653,28 @@ RSpec.describe Json::Merge::ConflictResolver do
       end
     end
   end
+
+  describe "dedup debug warnings" do
+    it "logs when the JSON leading-comment dedup guard fires" do
+      resolver = described_class.allocate
+      resolver.instance_variable_set(:@emitted_leading_comment_texts, ::Set["duplicate"])
+      resolver.instance_variable_set(:@emitter, double("emitter"))
+
+      node = double("node", start_line: 4)
+      region = double("region", normalized_content: "duplicate", start_line: 1, end_line: 2, empty?: false)
+      attachment = double("attachment", leading_region: region)
+      analysis = double("analysis", path: "package.json", lines: [])
+
+      allow(resolver).to receive(:shared_line_comment_attachment_for).and_return(attachment)
+      allow(resolver).to receive(:emit_blank_lines_in_range)
+      allow(Json::Merge::DebugLogger).to receive(:debug_warning)
+
+      resolver.send(:emit_preferred_leading_comments_for, node, analysis)
+
+      expect(Json::Merge::DebugLogger).to have_received(:debug_warning).with(
+        /Dedup guard fired/,
+        hash_including(file: "package.json", normalized_content: "duplicate", region_lines: [1, 2]),
+      )
+    end
+  end
 end

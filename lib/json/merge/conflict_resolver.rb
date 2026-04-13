@@ -498,6 +498,10 @@ module Json
         # was already emitted by a preceding node (from either source).
         normalized = region.normalized_content
         if normalized && !normalized.empty? && @emitted_leading_comment_texts&.include?(normalized)
+          DebugLogger.debug_warning(
+            "Dedup guard fired while emitting JSON leading comments; comment ownership overlaps.",
+            dedup_warning_context(region: region, analysis: analysis, node: node),
+          )
           emit_blank_lines_in_range((region.end_line || node.start_line).to_i + 1, node.start_line.to_i - 1, analysis)
           return
         end
@@ -518,6 +522,16 @@ module Json
         # and skip if already emitted by a preceding node.
         normalized = leading.map { |c| c[:text].to_s.strip }.join("\n")
         if @emitted_leading_comment_texts&.include?(normalized)
+          DebugLogger.debug_warning(
+            "Dedup guard fired while emitting tracked JSON leading comments; comment ownership overlaps.",
+            dedup_warning_context(
+              region: nil,
+              analysis: analysis,
+              node: node,
+              normalized_content: normalized,
+              region_lines: [leading.first[:line], comment_end_line(leading.last)],
+            ),
+          )
           emit_blank_lines_in_range(comment_end_line(leading.last) + 1, node.start_line - 1, analysis)
           return
         end
@@ -534,6 +548,15 @@ module Json
 
         inline_comment = analysis.comment_tracker.inline_comment_at(inline_comment_line_for(node))
         inline_comment&.dig(:text)
+      end
+
+      def dedup_warning_context(region:, analysis:, node:, normalized_content: nil, region_lines: nil)
+        {
+          file: analysis.respond_to?(:path) ? analysis.path : nil,
+          owner_type: node&.respond_to?(:type) ? node.type : node.class.name.split("::").last,
+          region_lines: region_lines || [region&.respond_to?(:start_line) ? region.start_line : nil, region&.respond_to?(:end_line) ? region.end_line : nil],
+          normalized_content: normalized_content || region&.normalized_content,
+        }.compact
       end
 
       def emit_with_preferred_inline_comment(node, analysis, shared_attachment: nil)
