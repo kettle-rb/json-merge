@@ -255,8 +255,6 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
         s.respond_to?(:elements) ? s.elements : []
       end.select { |n| n.respond_to?(:object?) && n.object? }
 
-      skip "No objects in arrays" if template_nodes.empty? || dest_nodes.empty?
-
       matches = refiner.send(:match_array_objects, template_nodes, dest_nodes)
       expect(matches).to be_an(Array)
     end
@@ -286,8 +284,6 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
       d_obj = d_analysis.root_object
-      skip "No objects" unless t_obj && d_obj
-
       score = refiner.send(:compute_object_similarity, t_obj, d_obj)
       expect(score).to eq(1.0)
     end
@@ -299,8 +295,6 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
       d_obj = d_analysis.root_object
-      skip "No objects" unless t_obj && d_obj
-
       score = refiner.send(:compute_object_similarity, t_obj, d_obj)
       expect(score).to eq(0.0)
     end
@@ -312,8 +306,6 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
       d_obj = d_analysis.root_object
-      skip "No objects" unless t_obj && d_obj
-
       score = refiner.send(:compute_object_similarity, t_obj, d_obj)
       expect(score).to eq(0.0)
     end
@@ -363,12 +355,8 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       json = '{"a": "hello", "b": "world"}'
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_object
-      skip "No root" unless root
       pairs = root.pairs
-      skip "Not enough pairs" if pairs.size < 2
       t_val = pairs[0].value_node
-      d_val = pairs[1].value_node
-      skip "No values" unless t_val && d_val
 
       score = refiner.send(:value_similarity, t_val, t_val)
       expect(score).to eq(1.0)
@@ -381,13 +369,10 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
       d_obj = d_analysis.root_object
-      skip "No objects" unless t_obj && d_obj
       t_pair = t_obj.pairs.first
       d_pair = d_obj.pairs.first
-      skip "No pairs" unless t_pair && d_pair
       t_val = t_pair.value_node
       d_val = d_pair.value_node
-      skip "No nested values" unless t_val && d_val
 
       score = refiner.send(:value_similarity, t_val, d_val)
       expect(score).to be_a(Float)
@@ -400,13 +385,10 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
       d_obj = d_analysis.root_object
-      skip "No objects" unless t_obj && d_obj
       t_pair = t_obj.pairs.first
       d_pair = d_obj.pairs.first
-      skip "No pairs" unless t_pair && d_pair
       t_val = t_pair.value_node
       d_val = d_pair.value_node
-      skip "No array values" unless t_val && d_val
 
       score = refiner.send(:value_similarity, t_val, d_val)
       expect(score).to be_a(Float)
@@ -433,10 +415,8 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
       d_obj = d_analysis.root_object
-      skip "No objects" unless t_obj && d_obj
       t_arr = t_obj.pairs.first&.value_node
       d_arr = d_obj.pairs.first&.value_node
-      skip "No arrays" unless t_arr && d_arr
 
       score = refiner.send(:array_similarity, t_arr, d_arr)
       expect(score).to eq(1.0)
@@ -449,10 +429,8 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       d_analysis = Json::Merge::FileAnalysis.new(d_json)
       t_obj = t_analysis.root_object
       d_obj = d_analysis.root_object
-      skip "No objects" unless t_obj && d_obj
       t_arr = t_obj.pairs.first&.value_node
       d_arr = d_obj.pairs.first&.value_node
-      skip "No arrays" unless t_arr && d_arr
 
       score = refiner.send(:array_similarity, t_arr, d_arr)
       expect(score).to eq(0.0)
