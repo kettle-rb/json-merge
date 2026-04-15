@@ -26,6 +26,9 @@ RSpec.describe Json::Merge::FileAnalysis do
       expect(profile.attachment_strategy).to eq(:augmenter_preferred_tracker_layout)
       expect(profile.comment_style).to eq(:c_style_line)
       expect(profile.render_family).to eq(:json_object_pairs)
+      expect(profile.repair_policies).to eq([])
+      expect(profile.surfaces).to eq([])
+      expect(profile.delegation_policies).to eq([])
     end
   end
 
