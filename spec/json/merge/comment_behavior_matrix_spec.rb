@@ -14,9 +14,19 @@ RSpec.describe Json::Merge::SmartMerger, "comment behavior matrix", :json_gramma
 
   it_behaves_like "Ast::Merge::CommentBehaviorMatrix" do
     let(:comment_matrix_default_indent) { "  " }
+    let(:comment_matrix_line_equivalents) do
+      lambda do |line|
+        next [line] unless line.match?(/^\s*"/)
+
+        [line, "#{line},"]
+      end
+    end
     line_based_comment_matrix_adapter(
       analysis_class: Json::Merge::FileAnalysis,
       merger_class: Json::Merge::SmartMerger,
+      capabilities: {
+        duplicate_template_preamble_prefix_collapse: "JSON duplicate-prefix collapse remains a healing policy, not a normative merge rule",
+      },
       source_builder: lambda do |*lines|
         rendered_lines = lines.map(&:dup)
         first_structural_index = rendered_lines.index { |line| line.match?(/^\s*"/) } || rendered_lines.length

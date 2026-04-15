@@ -251,13 +251,12 @@ module Json
               fallback_analysis: template_analysis,
             )
             comment_attachment = shared_line_comment_attachment_for(comment_source_node, comment_source_analysis)
-            inline_source_node, inline_source_analysis = preferred_inline_source(
+            inline_source_node, inline_source_analysis, inline_attachment = preferred_available_inline_attachment(
               template_node,
               template_analysis,
               dest_node,
               dest_analysis,
             )
-            inline_attachment = shared_line_comment_attachment_for(inline_source_node, inline_source_analysis)
 
             emit_preferred_leading_comments_for(comment_source_node, comment_source_analysis, shared_attachment: comment_attachment)
             trailing_source_node, trailing_source_analysis = preferred_container_comment_source(
@@ -392,7 +391,15 @@ module Json
         source_node = comment_source_node || node
         source_analysis = comment_source_node ? comment_analysis : analysis
         source_attachment = shared_line_comment_attachment_for(source_node, source_analysis)
-        inline_attachment = shared_line_comment_attachment_for(node, analysis)
+        _inline_source_node, _inline_source_analysis, inline_attachment =
+          preferred_available_inline_attachment(
+            node,
+            analysis,
+            comment_source_node,
+            source_analysis,
+            preferred_node: node,
+            preferred_analysis: analysis,
+          )
 
         emit_preferred_leading_comments_for(source_node, source_analysis, shared_attachment: source_attachment)
 
@@ -481,12 +488,31 @@ module Json
         [node, analysis]
       end
 
-      def preferred_inline_source(template_node, template_analysis, dest_node, dest_analysis)
-        if preference_for_pair(template_node, dest_node) == :destination
-          [dest_node, dest_analysis]
+      def preferred_available_inline_attachment(template_node, template_analysis, dest_node, dest_analysis, preferred_node: nil, preferred_analysis: nil)
+        if preferred_node && preferred_analysis
+          primary_node = preferred_node
+          primary_analysis = preferred_analysis
+          fallback_node = (preferred_node.equal?(template_node) && preferred_analysis.equal?(template_analysis)) ? dest_node : template_node
+          fallback_analysis = fallback_node.equal?(dest_node) ? dest_analysis : template_analysis
+        elsif preference_for_pair(template_node, dest_node) == :destination
+          primary_node = dest_node
+          primary_analysis = dest_analysis
+          fallback_node = template_node
+          fallback_analysis = template_analysis
         else
-          [template_node, template_analysis]
+          primary_node = template_node
+          primary_analysis = template_analysis
+          fallback_node = dest_node
+          fallback_analysis = dest_analysis
         end
+
+        primary_attachment = shared_inline_comment_attachment_for(primary_node, primary_analysis)
+        return [primary_node, primary_analysis, primary_attachment] if primary_attachment&.inline_region && !primary_attachment.inline_region.empty?
+
+        fallback_attachment = shared_inline_comment_attachment_for(fallback_node, fallback_analysis)
+        return [fallback_node, fallback_analysis, fallback_attachment] if fallback_attachment&.inline_region && !fallback_attachment.inline_region.empty?
+
+        [primary_node, primary_analysis, nil]
       end
 
       def preferred_container_comment_source(node, analysis, fallback_node: nil, fallback_analysis: nil)
@@ -609,6 +635,21 @@ module Json
           node,
           line_num: node.start_line,
           leading_comments: leading_comments,
+          inline_comment: inline_comment,
+        )
+      end
+
+      def shared_inline_comment_attachment_for(node, analysis)
+        return unless node && analysis
+        return unless node.respond_to?(:start_line) && node.start_line
+
+        inline_comment = analysis.comment_tracker.inline_comment_at(inline_comment_line_for(node))
+        return unless inline_comment
+
+        analysis.comment_attachment_for(
+          node,
+          line_num: node.start_line,
+          leading_comments: [],
           inline_comment: inline_comment,
         )
       end
