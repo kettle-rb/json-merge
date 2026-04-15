@@ -780,7 +780,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       expect(array_node.pairs).to eq([])
     end
   end
