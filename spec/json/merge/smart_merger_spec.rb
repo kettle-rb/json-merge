@@ -149,6 +149,8 @@ RSpec.describe Json::Merge::SmartMerger do
       expect(debug_result.dig(:runtime, :summary, :operation_count)).to eq(1)
       expect(debug_result.dig(:runtime, :operation_trees, 0, :surface, :surface_kind)).to eq(:json_document)
       expect(debug_result.dig(:runtime, :operation_trees, 0, :delegate_name)).to eq("json-runtime")
+      expect(debug_result.dig(:debug, :corruption_handling)).to eq(:heal)
+      expect(runtime_debug_merger.options[:corruption_handling]).to eq(:heal)
     end
   end
 end

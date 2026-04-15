@@ -92,6 +92,8 @@ module Json
     #   end
     class DestinationParseError < ParseError; end
 
+    class CorruptionDetectedError < Error; end
+
     autoload :CommentTracker, "json/merge/comment_tracker"
     autoload :DebugLogger, "json/merge/debug_logger"
     autoload :Emitter, "json/merge/emitter"

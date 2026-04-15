@@ -12,6 +12,7 @@ module Json
       class MissingSharedInlineRegionError < Json::Merge::Error; end
 
       include ::Ast::Merge::TrailingGroups::DestIterate
+      attr_reader :corruption_handling
 
       # Creates a new ConflictResolver
       #
@@ -26,7 +27,7 @@ module Json
       # @param options [Hash] Additional options for forward compatibility
       # @param node_typing [Hash{Symbol,String => #call}, nil] Node typing configuration
       #   for per-node-type preferences
-      def initialize(template_analysis, dest_analysis, preference: :destination, add_template_only_nodes: false, remove_template_missing_nodes: false, match_refiner: nil, node_typing: nil, **options)
+      def initialize(template_analysis, dest_analysis, preference: :destination, add_template_only_nodes: false, remove_template_missing_nodes: false, corruption_handling: :heal, match_refiner: nil, node_typing: nil, **options)
         super(
           strategy: :batch,
           preference: preference,
@@ -37,6 +38,7 @@ module Json
           match_refiner: match_refiner,
           **options
         )
+        @corruption_handling = ::Ast::Merge::Healer.normalize_mode(corruption_handling)
         @node_typing = node_typing
         @emitter = Emitter.new
       end
@@ -538,12 +540,15 @@ module Json
         # was already emitted by a preceding node (from either source).
         normalized = region.normalized_content
         if normalized && !normalized.empty? && @emitted_leading_comment_texts&.include?(normalized)
-          DebugLogger.debug_warning(
-            "Dedup guard fired while emitting JSON leading comments; comment ownership overlaps.",
-            dedup_warning_context(region: region, analysis: analysis, node: node),
+          should_heal = handle_suspected_corruption(
+            kind: :comment_ownership_overlap,
+            message: "leading comment region overlaps previously emitted JSON comment ownership",
+            context: dedup_warning_context(region: region, analysis: analysis, node: node),
           )
-          emit_blank_lines_in_range((region.end_line || node.start_line).to_i + 1, node.start_line.to_i - 1, analysis)
-          return
+          if should_heal
+            emit_blank_lines_in_range((region.end_line || node.start_line).to_i + 1, node.start_line.to_i - 1, analysis)
+            return
+          end
         end
         @emitted_leading_comment_texts&.add(normalized) if normalized && !normalized.empty?
 
@@ -562,9 +567,10 @@ module Json
         # and skip if already emitted by a preceding node.
         normalized = leading.map { |c| c[:text].to_s.strip }.join("\n")
         if @emitted_leading_comment_texts&.include?(normalized)
-          DebugLogger.debug_warning(
-            "Dedup guard fired while emitting tracked JSON leading comments; comment ownership overlaps.",
-            dedup_warning_context(
+          should_heal = handle_suspected_corruption(
+            kind: :comment_ownership_overlap,
+            message: "tracked leading comments overlap previously emitted JSON comment ownership",
+            context: dedup_warning_context(
               region: nil,
               analysis: analysis,
               node: node,
@@ -572,8 +578,10 @@ module Json
               region_lines: [leading.first[:line], comment_end_line(leading.last)],
             ),
           )
-          emit_blank_lines_in_range(comment_end_line(leading.last) + 1, node.start_line - 1, analysis)
-          return
+          if should_heal
+            emit_blank_lines_in_range(comment_end_line(leading.last) + 1, node.start_line - 1, analysis)
+            return
+          end
         end
         @emitted_leading_comment_texts&.add(normalized)
 
@@ -596,6 +604,17 @@ module Json
           region_lines: region_lines || [region&.respond_to?(:start_line) ? region.start_line : nil, region&.respond_to?(:end_line) ? region.end_line : nil],
           normalized_content: normalized_content || region&.normalized_content,
         }.compact
+      end
+
+      def handle_suspected_corruption(kind:, message:, context:)
+        ::Ast::Merge::Healer.handle(
+          mode: corruption_handling,
+          kind: kind,
+          message: message,
+          prefix: "[json-merge]",
+          error_class: Json::Merge::CorruptionDetectedError,
+          warner: ->(formatted) { DebugLogger.debug_warning(formatted, context) },
+        )
       end
 
       def emit_with_preferred_inline_comment(node, analysis, shared_attachment: nil)

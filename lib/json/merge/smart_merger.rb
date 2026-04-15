@@ -25,6 +25,7 @@ module Json
       include ::Ast::Merge::Runtime::RootSessionSupport
 
       attr_reader :runtime_session
+      attr_reader :corruption_handling
 
       # Creates a new SmartMerger
       #
@@ -48,6 +49,7 @@ module Json
         preference: :destination,
         add_template_only_nodes: false,
         remove_template_missing_nodes: false,
+        corruption_handling: :heal,
         freeze_token: nil,
         match_refiner: nil,
         regions: nil,
@@ -56,6 +58,7 @@ module Json
         **options
       )
         @remove_template_missing_nodes = remove_template_missing_nodes
+        @corruption_handling = ::Ast::Merge::Healer.normalize_mode(corruption_handling)
 
         super(
           template_content,
@@ -81,6 +84,7 @@ module Json
           preference: @preference,
           add_template_only_nodes: @add_template_only_nodes,
           remove_template_missing_nodes: @remove_template_missing_nodes,
+          corruption_handling: @corruption_handling,
           match_refiner: @match_refiner,
         }
       end
@@ -124,6 +128,7 @@ module Json
             preference: @preference,
             add_template_only_nodes: @add_template_only_nodes,
             remove_template_missing_nodes: @remove_template_missing_nodes,
+            corruption_handling: @corruption_handling,
             freeze_token: @freeze_token,
             runtime_operation_count: runtime_session&.operations&.size || 0,
             runtime_diagnostic_count: runtime_session&.diagnostics&.size || 0,
@@ -180,6 +185,7 @@ module Json
           preference: @preference,
           add_template_only_nodes: @add_template_only_nodes,
           remove_template_missing_nodes: @remove_template_missing_nodes,
+          corruption_handling: @corruption_handling,
           match_refiner: @match_refiner,
           node_typing: @node_typing,
         )

@@ -710,8 +710,10 @@ RSpec.describe Json::Merge::ConflictResolver do
   describe "dedup debug warnings" do
     it "logs when the JSON leading-comment dedup guard fires" do
       resolver = described_class.allocate
+      emitter = double("emitter")
       resolver.instance_variable_set(:@emitted_leading_comment_texts, Set["duplicate"])
-      resolver.instance_variable_set(:@emitter, double("emitter"))
+      resolver.instance_variable_set(:@emitter, emitter)
+      resolver.instance_variable_set(:@corruption_handling, :warn)
 
       node = double("node", start_line: 4)
       region = double("region", normalized_content: "duplicate", start_line: 1, end_line: 2, empty?: false)
@@ -720,14 +722,34 @@ RSpec.describe Json::Merge::ConflictResolver do
 
       allow(resolver).to receive(:shared_line_comment_attachment_for).and_return(attachment)
       allow(resolver).to receive(:emit_blank_lines_in_range)
+      allow(emitter).to receive(:emit_comment_attachment)
       allow(Json::Merge::DebugLogger).to receive(:debug_warning)
 
       resolver.send(:emit_preferred_leading_comments_for, node, analysis)
 
       expect(Json::Merge::DebugLogger).to have_received(:debug_warning).with(
-        /Dedup guard fired/,
+        /Suspected corruption \(comment_ownership_overlap\)/,
         hash_including(file: "package.json", normalized_content: "duplicate", region_lines: [1, 2]),
       )
+    end
+
+    it "raises when the JSON leading-comment dedup guard fires in error mode" do
+      resolver = described_class.allocate
+      resolver.instance_variable_set(:@emitted_leading_comment_texts, Set["duplicate"])
+      resolver.instance_variable_set(:@emitter, double("emitter"))
+      resolver.instance_variable_set(:@corruption_handling, :error)
+
+      node = double("node", start_line: 4)
+      region = double("region", normalized_content: "duplicate", start_line: 1, end_line: 2, empty?: false)
+      attachment = double("attachment", leading_region: region)
+      analysis = double("analysis", path: "package.json", lines: [])
+
+      allow(resolver).to receive(:shared_line_comment_attachment_for).and_return(attachment)
+      allow(resolver).to receive(:emit_blank_lines_in_range)
+
+      expect {
+        resolver.send(:emit_preferred_leading_comments_for, node, analysis)
+      }.to raise_error(Json::Merge::CorruptionDetectedError, /comment_ownership_overlap/)
     end
   end
 end
