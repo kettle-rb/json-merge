@@ -417,11 +417,8 @@ RSpec.describe Json::Merge::ObjectMatchRefiner do
       json = '{"a": 42}'
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_object
-      skip "No root" unless root
       pair = root.pairs.first
-      skip "No pair" unless pair
       val = pair.value_node
-      skip "No value" unless val
 
       score = refiner.send(:value_similarity, val, val)
       expect(score).to be >= 0.5
