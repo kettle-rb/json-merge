@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "spec_helper"
+require "ast/merge/rspec/shared_examples"
 
 # SmartMerger specs with explicit backend testing
 #
@@ -111,5 +112,43 @@ RSpec.describe Json::Merge::SmartMerger do
     it_behaves_like "invalid template detection"
     it_behaves_like "invalid destination detection"
     it_behaves_like "multi-byte character (emoji) handling"
+  end
+
+  describe "#merge_with_debug", :json_grammar do
+    let(:runtime_debug_merger) do
+      described_class.new(
+        <<~JSON,
+          {
+            "name": "template",
+            "enabled": true
+          }
+        JSON
+        <<~JSON
+          {
+            "name": "destination",
+            "enabled": true
+          }
+        JSON
+      )
+    end
+
+    it_behaves_like "Ast::Merge::RuntimeDebugContract"
+
+    it "returns runtime-aware debug information" do
+      debug_result = runtime_debug_merger.merge_with_debug
+
+      expect(debug_result).to include(
+        :content,
+        :debug,
+        :runtime,
+        :statistics,
+        :decisions,
+        :template_analysis,
+        :dest_analysis,
+      )
+      expect(debug_result.dig(:runtime, :summary, :operation_count)).to eq(1)
+      expect(debug_result.dig(:runtime, :operation_trees, 0, :surface, :surface_kind)).to eq(:json_document)
+      expect(debug_result.dig(:runtime, :operation_trees, 0, :delegate_name)).to eq("json-runtime")
+    end
   end
 end

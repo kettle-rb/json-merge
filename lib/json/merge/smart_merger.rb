@@ -22,6 +22,10 @@ module Json
     #   merger = SmartMerger.new(template, dest,
     #     regions: [{ detector: SomeDetector.new, merger_class: SomeMerger }])
     class SmartMerger < ::Ast::Merge::SmartMergerBase
+      include ::Ast::Merge::Runtime::RootSessionSupport
+
+      attr_reader :runtime_session
+
       # Creates a new SmartMerger
       #
       # @param template_content [String] Template JSON content
@@ -78,6 +82,57 @@ module Json
           add_template_only_nodes: @add_template_only_nodes,
           remove_template_missing_nodes: @remove_template_missing_nodes,
           match_refiner: @match_refiner,
+        }
+      end
+
+      # Perform the merge operation and return the full MergeResult object.
+      #
+      # @return [MergeResult] The merge result containing merged JSON content and metadata
+      def merge_result
+        return @merge_result if @merge_result
+
+        root_operation = start_runtime_session!
+        @merge_result = super
+        complete_runtime_session!(root_operation, @merge_result)
+        @merge_result
+      rescue StandardError => e
+        fail_runtime_session!(root_operation, e)
+        raise
+      end
+
+      # Perform the merge and return detailed runtime-aware debug information.
+      #
+      # @return [Hash] Hash containing :content, :debug, :runtime, :statistics, and :decisions
+      def merge_with_debug
+        result_obj = merge_result
+        template_analysis_debug = {
+          valid: @template_analysis.valid?,
+          nodes: @template_analysis.nodes.size,
+          freeze_blocks: @template_analysis.freeze_blocks.size,
+        }
+        dest_analysis_debug = {
+          valid: @dest_analysis.valid?,
+          nodes: @dest_analysis.nodes.size,
+          freeze_blocks: @dest_analysis.freeze_blocks.size,
+        }
+
+        {
+          content: result_obj.to_json,
+          debug: {
+            template_nodes: template_analysis_debug[:nodes],
+            dest_nodes: dest_analysis_debug[:nodes],
+            preference: @preference,
+            add_template_only_nodes: @add_template_only_nodes,
+            remove_template_missing_nodes: @remove_template_missing_nodes,
+            freeze_token: @freeze_token,
+            runtime_operation_count: runtime_session&.operations&.size || 0,
+            runtime_diagnostic_count: runtime_session&.diagnostics&.size || 0,
+          },
+          runtime: runtime_session&.to_h,
+          statistics: result_obj.statistics,
+          decisions: result_obj.decision_summary,
+          template_analysis: template_analysis_debug,
+          dest_analysis: dest_analysis_debug,
         }
       end
 
@@ -143,6 +198,50 @@ module Json
       # @return [Class] The destination parse error class for JSON
       def destination_parse_error_class
         DestinationParseError
+      end
+
+      private
+
+      def start_runtime_session!
+        start_runtime_root_session!(
+          surface_kind: :json_document,
+          declared_language: :json,
+          effective_language: :json,
+          operation_id: "json-document-root",
+          delegate_name: "json-runtime",
+          policy_context: {
+            preference: @preference,
+            add_template_only_nodes: @add_template_only_nodes,
+            remove_template_missing_nodes: @remove_template_missing_nodes,
+          },
+          metadata: {merger: self.class.name},
+          options: {
+            preference: @preference,
+            add_template_only_nodes: @add_template_only_nodes,
+            remove_template_missing_nodes: @remove_template_missing_nodes,
+          },
+          language_chain: [:json],
+          delegate_metadata: {merger: self.class.name},
+        )
+      end
+
+      def complete_runtime_session!(root_operation, merge_result)
+        complete_runtime_root_session!(
+          root_operation: root_operation,
+          replacement_text: merge_result.to_json,
+          metadata: {
+            stats: merge_result.statistics,
+            decisions: merge_result.decision_summary,
+          },
+        )
+      end
+
+      def fail_runtime_session!(root_operation, error)
+        fail_runtime_root_session!(
+          root_operation: root_operation,
+          error: error,
+          kind: :merge_failed,
+        )
       end
     end
   end
