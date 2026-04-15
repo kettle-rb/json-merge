@@ -31,14 +31,12 @@ RSpec.describe Json::Merge::NodeWrapper do
 
     describe "#type" do
       it "returns the node type" do
-        skip "No wrapper node available" unless @wrapper
         expect(@wrapper.type).to be_a(Symbol)
       end
     end
 
     describe "#start_line" do
       it "returns the starting line number" do
-        skip "No wrapper node available" unless @wrapper
         expect(@wrapper.start_line).to be_a(Integer)
         expect(@wrapper.start_line).to be >= 1
       end
@@ -46,7 +44,6 @@ RSpec.describe Json::Merge::NodeWrapper do
 
     describe "#end_line" do
       it "returns the ending line number" do
-        skip "No wrapper node available" unless @wrapper
         expect(@wrapper.end_line).to be_a(Integer)
         expect(@wrapper.end_line).to be >= @wrapper.start_line
       end
@@ -54,21 +51,18 @@ RSpec.describe Json::Merge::NodeWrapper do
 
     describe "#text" do
       it "returns the node text" do
-        skip "No wrapper node available" unless @wrapper
         expect(@wrapper.text).to be_a(String)
       end
     end
 
     describe "#children" do
       it "returns an array" do
-        skip "No wrapper node available" unless @wrapper
         expect(@wrapper.children).to be_an(Array)
       end
     end
 
     describe "#frozen?" do
       it "returns false for regular nodes" do
-        skip "No wrapper node available" unless @wrapper
         expect(@wrapper.frozen?).to be false
       end
     end
@@ -91,7 +85,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_node
         # The root document contains an array
         array_node = root.children.find(&:array?)
-        skip "No array child" unless array_node
         expect(array_node.array?).to be true
       end
 
@@ -217,7 +210,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       expect(array_node.pairs).to eq([])
     end
   end
@@ -228,7 +220,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       elements = array_node.elements
       expect(elements.size).to eq(3)
     end
@@ -363,7 +354,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         analysis = Json::Merge::FileAnalysis.new(json)
         root = analysis.root_node
         array_node = root.children.find(&:array?)
-        skip "No array node" unless array_node
         sig = array_node.signature
         expect(sig).to be_an(Array)
         # Root-level arrays get :root_array signature (they always match)
@@ -378,7 +368,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_object
         pair = root.pairs.first
         value = pair.value_node
-        skip "No value" unless value
         sig = value.signature
         expect(sig).to be_an(Array)
         expect(sig.first).to eq(:string)
@@ -393,7 +382,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_object
         pair = root.pairs.first
         value = pair.value_node
-        skip "No value" unless value
         sig = value.signature
         expect(sig).to be_an(Array)
         expect(sig.first).to eq(:number)
@@ -406,7 +394,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_object
         pair = root.pairs.first
         value = pair.value_node
-        skip "No value" unless value
         expect(value.number?).to be true
       end
 
@@ -416,7 +403,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_object
         pair = root.pairs.first
         value = pair.value_node
-        skip "No value" unless value
         expect(value.number?).to be true
       end
     end
@@ -428,7 +414,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_object
         pair = root.pairs.first
         value = pair.value_node
-        skip "No value" unless value
         sig = value.signature
         expect(sig).to be_an(Array)
         expect(sig.first).to eq(:boolean)
@@ -441,7 +426,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_object
         pair = root.pairs.first
         value = pair.value_node
-        skip "No value" unless value
         sig = value.signature
         expect(sig).to be_an(Array)
         expect(sig.first).to eq(:boolean)
@@ -456,7 +440,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         root = analysis.root_object
         pair = root.pairs.first
         value = pair.value_node
-        skip "No value" unless value
         sig = value.signature
         expect(sig).to be_an(Array)
         expect(sig.first).to eq(:null)
@@ -484,7 +467,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       root = analysis.root_object
       pair = root.pairs.first
       value = pair.value_node
-      skip "No value" unless value
       expect(value.object?).to be true
       expect(value.pairs.size).to eq(1)
     end
@@ -495,7 +477,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       root = analysis.root_object
       pair = root.pairs.first
       value = pair.value_node
-      skip "No value" unless value
       expect(value.array?).to be true
     end
 
@@ -504,7 +485,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       elements = array_node.elements
       expect(elements.size).to eq(2)
       elements.each { |e| expect(e.object?).to be true }
@@ -524,7 +504,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       expect(array_node.elements).to eq([])
     end
 
@@ -534,7 +513,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       root = analysis.root_object
       pair = root.pairs.first
       value = pair.value_node
-      skip "No value" unless value
       expect(value.string?).to be true
     end
 
@@ -625,7 +603,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       elements = array_node.elements
       # Should only have 2 elements, not punctuation
       expect(elements.size).to eq(2)
@@ -637,7 +614,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       elements = array_node.elements
       expect(elements.size).to eq(4)
     end
@@ -694,7 +670,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       root = analysis.root_object
       pair = root.pairs.first
       value = pair.value_node
-      skip "No value" unless value
       sig = value.signature
       expect(sig.first).to eq(:string)
       expect(sig[1]).to include("hello world")
@@ -708,7 +683,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       root = analysis.root_object
       pair = root.pairs.first
       value = pair.value_node
-      skip "No value" unless value
       sig = value.signature
       expect(sig.first).to eq(:number)
       expect(sig[1]).to eq("42")
@@ -722,7 +696,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       root = analysis.root_object
       pair = root.pairs.first
       value = pair.value_node
-      skip "No value" unless value
       sig = value.signature
       expect(sig).to eq([:boolean, "true"])
     end
@@ -733,7 +706,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       root = analysis.root_object
       pair = root.pairs.first
       value = pair.value_node
-      skip "No value" unless value
       sig = value.signature
       expect(sig).to eq([:boolean, "false"])
     end
@@ -746,7 +718,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       root = analysis.root_object
       pair = root.pairs.first
       value = pair.value_node
-      skip "No value" unless value
       sig = value.signature
       expect(sig).to eq([:null])
     end
@@ -758,7 +729,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       sig = array_node.signature
       # Root-level arrays get :root_array signature
       expect(sig.first).to eq(:root_array)
@@ -769,7 +739,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       sig = array_node.signature
       # Root-level arrays get :root_array signature
       expect(sig).to eq([:root_array])
@@ -1208,7 +1177,6 @@ RSpec.describe Json::Merge::NodeWrapper do
         analysis = Json::Merge::FileAnalysis.new(json)
         root = analysis.root_node
         array_node = root.children.find(&:array?)
-        skip "No array" unless array_node
         children = array_node.mergeable_children
         expect(children.size).to eq(array_node.elements.size)
         expect(children.all?(&:string?)).to be true
@@ -1240,7 +1208,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       expect(array_node.container?).to be true
     end
 
@@ -1285,7 +1252,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       expect(array_node.opening_line).to eq("[")
     end
 
@@ -1312,7 +1278,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       expect(array_node.closing_line).to eq("]")
     end
 
@@ -1339,7 +1304,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       expect(array_node.opening_bracket).to eq("[")
     end
 
@@ -1366,7 +1330,6 @@ RSpec.describe Json::Merge::NodeWrapper do
       analysis = Json::Merge::FileAnalysis.new(json)
       root = analysis.root_node
       array_node = root.children.find(&:array?)
-      skip "No array" unless array_node
       expect(array_node.closing_bracket).to eq("]")
     end
 
