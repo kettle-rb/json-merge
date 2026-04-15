@@ -164,6 +164,14 @@ module Json
         :augmenter_preferred_tracker_layout
       end
 
+      def ruleset_owner_selector
+        :line_bound_statements
+      end
+
+      def ruleset_render_family
+        :json_object_pairs
+      end
+
       private
 
       def layout_augmenter_default_owners

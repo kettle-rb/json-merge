@@ -15,6 +15,20 @@ require "spec_helper"
 # select the backend under test.
 
 RSpec.describe Json::Merge::FileAnalysis do
+  describe "#feature_profile" do
+    it "advertises the JSONC ruleset shape", :json_grammar do
+      analysis = described_class.new("{\n  \"name\": \"value\" // comment\n}\n")
+      profile = analysis.feature_profile
+
+      expect(profile.owner_selector).to eq(:line_bound_statements)
+      expect(profile.match_key).to eq(:signature)
+      expect(profile.read_strategy).to eq(:source_augmented_portable_write)
+      expect(profile.attachment_strategy).to eq(:augmenter_preferred_tracker_layout)
+      expect(profile.comment_style).to eq(:c_style_line)
+      expect(profile.render_family).to eq(:json_object_pairs)
+    end
+  end
+
   # ============================================================
   # :auto backend tests (uses whatever is available)
   # This tests the default behavior most users will experience
