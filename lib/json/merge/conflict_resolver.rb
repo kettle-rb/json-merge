@@ -963,7 +963,7 @@ module Json
         return unless after_comment.strip.empty?
 
         quote_count = before_comment.count('"') - before_comment.scan('\\"').count
-        return if quote_count.even?
+        return unless quote_count.even?
 
         {
           line: line_num,
