@@ -529,7 +529,7 @@ module Json
 
       def emit_preferred_leading_comments_for(node, analysis, shared_attachment: nil)
         attachment = shared_attachment || shared_line_comment_attachment_for(node, analysis)
-        region = attachment&.leading_region
+        region = canonical_leading_comment_region(attachment&.leading_region, analysis: analysis, node: node)
 
         unless region && !region.empty?
           emit_leading_comments_for(node, analysis)
@@ -553,7 +553,11 @@ module Json
         @emitted_leading_comment_texts&.add(normalized) if normalized && !normalized.empty?
 
         emit_blank_lines_before_leading_comments(region.start_line, analysis)
-        @emitter.emit_comment_attachment(attachment, leading: true, inline: false, source_lines: analysis.lines)
+        if attachment&.leading_region.equal?(region)
+          @emitter.emit_comment_attachment(attachment, leading: true, inline: false, source_lines: analysis.lines)
+        else
+          @emitter.emit_comment_region(region, source_lines: analysis.lines)
+        end
         emit_blank_lines_in_range((region.end_line || node.start_line).to_i + 1, node.start_line.to_i - 1, analysis)
       end
 
@@ -561,6 +565,7 @@ module Json
         return unless node&.respond_to?(:start_line) && node.start_line
 
         leading = analysis.comment_tracker.leading_comments_before(node.start_line)
+        leading = canonical_tracked_leading_comments(leading, analysis: analysis, node: node)
         return if leading.empty?
 
         # Bidirectional dedup: build normalized text from tracked comments
@@ -591,6 +596,73 @@ module Json
         emit_blank_lines_in_range(comment_end_line(leading.last) + 1, node.start_line - 1, analysis) if leading.any?
       end
 
+      def canonical_leading_comment_region(region, analysis:, node:)
+        return region unless region && !region.empty?
+        return region unless analysis.equal?(@dest_analysis)
+        return region unless first_statement?(node, analysis)
+
+        template_region = first_leading_comment_region(@template_analysis)
+        return region unless template_region && !template_region.empty?
+
+        template_nodes = Array(template_region.nodes)
+        region_nodes = Array(region.nodes)
+        return region if template_nodes.empty? || region_nodes.length < template_nodes.length
+
+        repeat_count = leading_repeat_count(region_nodes, template_nodes) do |left, right|
+          normalized_comment_unit(left) == normalized_comment_unit(right)
+        end
+        return region if repeat_count < 2
+
+        remaining_nodes = region_nodes.drop(repeat_count * template_nodes.length)
+        return region if remaining_nodes.empty?
+
+        should_heal = handle_suspected_corruption(
+          kind: :duplicate_template_preamble_prefix,
+          message: "leading JSON comment region begins with duplicated template-owned preamble comments",
+          context: {
+            template_comment_lines: template_nodes.length,
+            merged_comment_lines: region_nodes.length,
+            destination_specific_comment_lines: remaining_nodes.length,
+          },
+        )
+        return region unless should_heal
+
+        ::Ast::Merge::Comment::Region.new(
+          kind: region.kind,
+          nodes: remaining_nodes,
+          metadata: region.metadata,
+        )
+      end
+
+      def canonical_tracked_leading_comments(leading, analysis:, node:)
+        return leading unless analysis.equal?(@dest_analysis)
+        return leading unless first_statement?(node, analysis)
+
+        template_region = first_leading_comment_region(@template_analysis)
+        template_units = Array(template_region&.nodes).map { |comment| normalized_comment_unit(comment) }
+        return leading if template_units.empty? || leading.length < template_units.length
+
+        leading_units = leading.map { |comment| normalized_comment_unit(comment) }
+        repeat_count = leading_repeat_count(leading_units, template_units)
+        return leading if repeat_count < 2
+
+        remaining_comments = leading.drop(repeat_count * template_units.length)
+        return leading if remaining_comments.empty?
+
+        should_heal = handle_suspected_corruption(
+          kind: :duplicate_template_preamble_prefix,
+          message: "tracked JSON leading comments begin with duplicated template-owned preamble comments",
+          context: {
+            template_comment_lines: template_units.length,
+            merged_comment_lines: leading.length,
+            destination_specific_comment_lines: remaining_comments.length,
+          },
+        )
+        return leading unless should_heal
+
+        remaining_comments
+      end
+
       def tracked_inline_comment_for(node, analysis)
         return unless node&.respond_to?(:start_line) && node.start_line
 
@@ -615,6 +687,68 @@ module Json
           error_class: Json::Merge::CorruptionDetectedError,
           warner: ->(formatted) { DebugLogger.debug_warning(formatted, context) },
         )
+      end
+
+      def first_leading_comment_region(analysis)
+        first_statement = first_owned_node(analysis)
+        return unless first_statement
+
+        shared_line_comment_attachment_for(first_statement, analysis)&.leading_region
+      end
+
+      def first_statement?(node, analysis)
+        equivalent_owner?(first_owned_node(analysis), node)
+      end
+
+      def first_owned_node(analysis)
+        first_statement = Array(analysis&.statements).first
+        return unless first_statement
+
+        if first_statement.respond_to?(:container?) && first_statement.container? &&
+            first_statement.respond_to?(:mergeable_children)
+          first_child = Array(first_statement.mergeable_children).first
+          return first_child if first_child
+        end
+
+        first_statement
+      end
+
+      def equivalent_owner?(left, right)
+        return false unless left && right
+        return true if left.equal?(right)
+        return false unless left.respond_to?(:type) && right.respond_to?(:type) && left.type == right.type
+        return false unless left.respond_to?(:start_line) && right.respond_to?(:start_line) && left.start_line == right.start_line
+        return false unless left.respond_to?(:end_line) && right.respond_to?(:end_line) && left.end_line == right.end_line
+
+        if left.respond_to?(:key_name) && right.respond_to?(:key_name)
+          left.key_name == right.key_name
+        else
+          true
+        end
+      end
+
+      def leading_repeat_count(lines, prefix, &comparator)
+        return 0 if prefix.empty? || lines.length < prefix.length
+
+        comparator ||= ->(left, right) { left == right }
+        count = 0
+        while prefix_match?(lines.drop(count * prefix.length).first(prefix.length), prefix, comparator)
+          count += 1
+        end
+        count
+      end
+
+      def prefix_match?(candidate, prefix, comparator)
+        return false unless candidate && candidate.length == prefix.length
+
+        candidate.zip(prefix).all? { |left, right| comparator.call(left, right) }
+      end
+
+      def normalized_comment_unit(comment)
+        return comment.normalized_content if comment.respond_to?(:normalized_content)
+        return comment[:text].to_s.strip if comment.is_a?(Hash)
+
+        comment.to_s.strip
       end
 
       def emit_with_preferred_inline_comment(node, analysis, shared_attachment: nil)
