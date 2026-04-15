@@ -9,6 +9,8 @@ module Json
     #   resolver = ConflictResolver.new(template_analysis, dest_analysis)
     #   resolver.resolve(result)
     class ConflictResolver < Ast::Merge::ConflictResolverBase
+      class MissingSharedInlineRegionError < Json::Merge::Error; end
+
       include ::Ast::Merge::TrailingGroups::DestIterate
 
       # Creates a new ConflictResolver
@@ -558,11 +560,10 @@ module Json
         emit_blank_lines_in_range(comment_end_line(leading.last) + 1, node.start_line - 1, analysis) if leading.any?
       end
 
-      def inline_comment_text_for(node, analysis)
+      def tracked_inline_comment_for(node, analysis)
         return unless node&.respond_to?(:start_line) && node.start_line
 
-        inline_comment = analysis.comment_tracker.inline_comment_at(inline_comment_line_for(node))
-        inline_comment&.dig(:text)
+        analysis.comment_tracker.inline_comment_at(inline_comment_line_for(node))
       end
 
       def dedup_warning_context(region:, analysis:, node:, normalized_content: nil, region_lines: nil)
@@ -575,11 +576,17 @@ module Json
       end
 
       def emit_with_preferred_inline_comment(node, analysis, shared_attachment: nil)
+        tracked_inline_comment = tracked_inline_comment_for(node, analysis)
         attachment = shared_attachment || shared_line_comment_attachment_for(node, analysis)
         inline_region = attachment&.inline_region
 
         unless inline_region && !inline_region.empty?
-          yield inline_comment_text_for(node, analysis)
+          if tracked_inline_comment
+            raise MissingSharedInlineRegionError,
+              "Expected shared inline region for tracked inline comment at line #{tracked_inline_comment[:line]}"
+          end
+
+          yield nil
           return
         end
 

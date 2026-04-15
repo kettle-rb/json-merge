@@ -245,6 +245,30 @@ RSpec.describe Json::Merge::ConflictResolver do
         expect(content).to include("template inline")
         expect(content).not_to include("dest inline")
       end
+
+      it "raises when a tracked inline comment exists but the shared attachment has no inline region" do
+        analysis = Json::Merge::FileAnalysis.new(<<~JSON)
+          {
+            "name": "value" // inline note
+          }
+        JSON
+
+        skip "FileAnalysis not valid" unless analysis.valid?
+
+        resolver = described_class.new(analysis, analysis, preference: :template)
+        node = analysis.root_pairs.first
+
+        allow(resolver).to receive(:shared_line_comment_attachment_for)
+          .with(node, analysis)
+          .and_return(Ast::Merge::Comment::Attachment.new(owner: node))
+
+        expect {
+          resolver.send(:emit_with_preferred_inline_comment, node, analysis) { |_inline_text| nil }
+        }.to raise_error(
+          Json::Merge::ConflictResolver::MissingSharedInlineRegionError,
+          /Expected shared inline region/,
+        )
+      end
     end
 
     context "with per-node-type preference" do
