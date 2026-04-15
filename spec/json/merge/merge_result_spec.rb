@@ -177,7 +177,6 @@ RSpec.describe Json::Merge::MergeResult do
       json = '{"key": "value"}'
       analysis = Json::Merge::FileAnalysis.new(json)
       node = analysis.root_object
-      skip "No root object" unless node
 
       # Node should have valid lines, so this should work
       initial_count = result.lines.size
@@ -187,7 +186,6 @@ RSpec.describe Json::Merge::MergeResult do
 
     it "skips nodes without start_line" do
       analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
-      skip "Parser not available" unless analysis.valid?
 
       # Create a mock node without start_line
       mock_node = double("node")
@@ -201,7 +199,6 @@ RSpec.describe Json::Merge::MergeResult do
 
     it "skips nodes without end_line" do
       analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
-      skip "Parser not available" unless analysis.valid?
 
       # Create a mock node without end_line
       mock_node = double("node")
@@ -215,7 +212,6 @@ RSpec.describe Json::Merge::MergeResult do
 
     it "skips lines that are nil from analysis" do
       analysis = Json::Merge::FileAnalysis.new('{"key": "value"}')
-      skip "Parser not available" unless analysis.valid?
 
       # Create a mock node with out-of-range lines
       mock_node = double("node")
