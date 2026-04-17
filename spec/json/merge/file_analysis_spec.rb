@@ -15,20 +15,40 @@ require "spec_helper"
 # select the backend under test.
 
 RSpec.describe Json::Merge::FileAnalysis do
-  describe "#feature_profile" do
-    it "advertises the JSONC ruleset shape", :json_grammar do
-      analysis = described_class.new("{\n  \"name\": \"value\" // comment\n}\n")
-      profile = analysis.feature_profile
+  describe "FileAnalyzable contract", :json_grammar do
+    it_behaves_like "Ast::Merge::FileAnalyzable" do
+      let(:file_analysis_class) { described_class }
+      let(:freeze_node_class) { Json::Merge::FreezeNode }
+      let(:sample_source) { "{\n  \"name\": \"value\" // comment\n}\n" }
+      let(:sample_source_with_freeze) do
+        <<~JSON
+          {
+            // json-merge:freeze
+            "locked": true,
+            // json-merge:unfreeze
+            "open": false
+          }
+        JSON
+      end
+      let(:build_file_analysis) do
+        ->(source, **opts) { described_class.new(source, **opts) }
+      end
 
-      expect(profile.owner_selector).to eq(:line_bound_statements)
-      expect(profile.match_key).to eq(:signature)
-      expect(profile.read_strategy).to eq(:source_augmented_portable_write)
-      expect(profile.attachment_strategy).to eq(:augmenter_preferred_tracker_layout)
-      expect(profile.comment_style).to eq(:c_style_line)
-      expect(profile.render_family).to eq(:json_object_pairs)
-      expect(profile.repair_policies).to eq([])
-      expect(profile.surfaces).to eq([])
-      expect(profile.delegation_policies).to eq([])
+      let(:analysis_expected_feature_profile) do
+        {
+          owner_selector: :line_bound_statements,
+          match_key: :signature,
+          read_strategy: :source_augmented_portable_write,
+          attachment_strategy: :augmenter_preferred_tracker_layout,
+          comment_style: :c_style_line,
+          render_family: :json_object_pairs,
+          capabilities: {layout_aware: true, logical_owner: false},
+          logical_owners: {},
+          repair_policies: [],
+          surfaces: [],
+          delegation_policies: [],
+        }
+      end
     end
   end
 

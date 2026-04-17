@@ -9,6 +9,7 @@ module Json
     #   resolver = ConflictResolver.new(template_analysis, dest_analysis)
     #   resolver.resolve(result)
     class ConflictResolver < Ast::Merge::ConflictResolverBase
+      include Ast::Merge::StructuredEmitterProvenanceSupport
       class MissingSharedInlineRegionError < Json::Merge::Error; end
 
       include ::Ast::Merge::TrailingGroups::DestIterate
@@ -27,7 +28,7 @@ module Json
       # @param options [Hash] Additional options for forward compatibility
       # @param node_typing [Hash{Symbol,String => #call}, nil] Node typing configuration
       #   for per-node-type preferences
-      def initialize(template_analysis, dest_analysis, preference: :destination, add_template_only_nodes: false, remove_template_missing_nodes: false, corruption_handling: :heal, match_refiner: nil, node_typing: nil, **options)
+      def initialize(template_analysis, dest_analysis, preference: :destination, add_template_only_nodes: false, remove_template_missing_nodes: false, resolution_mode: :eager, corruption_handling: :heal, match_refiner: nil, node_typing: nil, **options)
         super(
           strategy: :batch,
           preference: preference,
@@ -38,6 +39,7 @@ module Json
           match_refiner: match_refiner,
           **options
         )
+        @resolution_mode = resolution_mode
         @corruption_handling = ::Ast::Merge::Healer.normalize_mode(corruption_handling)
         @node_typing = node_typing
         @emitter = Emitter.new
@@ -50,6 +52,7 @@ module Json
       # @param result [MergeResult] Result object to populate
       def resolve_batch(result)
         DebugLogger.time("ConflictResolver#resolve") do
+          @result = result
           template_statements = @template_analysis.statements
           dest_statements = @dest_analysis.statements
 
@@ -70,12 +73,7 @@ module Json
           emit_document_postlude(@dest_analysis, fallback_node: dest_statements.last)
 
           # Transfer emitter output to result
-          emitted_content = @emitter.to_s
-          unless emitted_content.empty?
-            emitted_content.lines.each do |line|
-              result.add_line(line.chomp, decision: MergeResult::DECISION_MERGED, source: :merged)
-            end
-          end
+          transfer_emitter_output(result)
 
           DebugLogger.debug("Conflict resolution complete", {
             template_statements: template_statements.size,
@@ -266,41 +264,53 @@ module Json
             )
             compact_source_node = trailing_source_node || dest_value || template_value
 
-            if compact_empty_container?(template_value, compact_source_node, trailing_source_analysis)
-              emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
-                @emitter.emit_pair(key_name, compact_container_literal_for(template_value), inline_comment: inline_text)
-              end
-            elsif template_value.object?
-              emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
-                @emitter.emit_nested_object_start(key_name, inline_comment: inline_text)
-              end
-            elsif template_value.array?
-              emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
-                @emitter.emit_array_start(key_name, inline_comment: inline_text)
-              end
-            end
-
-            unless compact_empty_container?(template_value, compact_source_node, trailing_source_analysis)
-              merge_node_lists_to_emitter(
-                template_value.mergeable_children,
-                dest_value.mergeable_children,
-                template_analysis,
-                dest_analysis,
-              )
-
-              emit_container_trailing_lines(trailing_source_node, trailing_source_analysis)
-
-              if template_value.object?
-                @emitter.emit_nested_object_end
+            with_resolution_path_segment(dest_node, template_node) do
+              if compact_empty_container?(template_value, compact_source_node, trailing_source_analysis)
+                emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
+                  @emitter.emit_pair(key_name, compact_container_literal_for(template_value), inline_comment: inline_text)
+                end
+              elsif template_value.object?
+                emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
+                  @emitter.emit_nested_object_start(key_name, inline_comment: inline_text)
+                end
               elsif template_value.array?
-                @emitter.emit_array_end
+                emit_with_preferred_inline_comment(inline_source_node, inline_source_analysis, shared_attachment: inline_attachment) do |inline_text|
+                  @emitter.emit_array_start(key_name, inline_comment: inline_text)
+                end
+              end
+
+              unless compact_empty_container?(template_value, compact_source_node, trailing_source_analysis)
+                merge_node_lists_to_emitter(
+                  template_value.mergeable_children,
+                  dest_value.mergeable_children,
+                  template_analysis,
+                  dest_analysis,
+                )
+
+                emit_container_trailing_lines(trailing_source_node, trailing_source_analysis)
+
+                if template_value.object?
+                  @emitter.emit_nested_object_end
+                elsif template_value.array?
+                  @emitter.emit_array_end
+                end
               end
             end
           elsif preference_for_pair(template_node, dest_node) == :destination
             # Values are not both objects, or one/both are arrays - use preference and emit
             # Arrays are always replaced, not merged
+            record_unresolved_choice(
+              template_node: template_node,
+              dest_node: dest_node,
+              match_kind: :pair_value,
+            )
             emit_node(dest_node, dest_analysis)
           else
+            record_unresolved_choice(
+              template_node: template_node,
+              dest_node: dest_node,
+              match_kind: :pair_value,
+            )
             emit_node(
               template_node,
               template_analysis,
@@ -310,8 +320,18 @@ module Json
           end
         elsif preference_for_pair(template_node, dest_node) == :destination
           # Leaf nodes or mismatched types - use preference
+          record_unresolved_choice(
+            template_node: template_node,
+            dest_node: dest_node,
+            match_kind: :node_value,
+          )
           emit_node(dest_node, dest_analysis)
         else
+          record_unresolved_choice(
+            template_node: template_node,
+            dest_node: dest_node,
+            match_kind: :node_value,
+          )
           emit_node(
             template_node,
             template_analysis,
@@ -381,6 +401,76 @@ module Json
         Ast::Merge::NodeTyping.process(node, @node_typing)
       end
 
+      def record_unresolved_choice(template_node:, dest_node:, match_kind:)
+        return unless unresolved_mode?
+        return unless template_node && dest_node
+
+        template_text = node_resolution_text(template_node)
+        dest_text = node_resolution_text(dest_node)
+        return if template_text == dest_text
+
+        provisional_winner = preference_for_pair(template_node, dest_node) == :template ? :template : :destination
+        key_name = resolution_key_name(template_node, dest_node)
+        surface_path = resolution_surface_path(template_node, dest_node)
+        metadata = {
+          match_kind: match_kind,
+          node_type: dest_node.respond_to?(:type) ? dest_node.type : nil,
+          key_name: key_name,
+          review_identity: review_identity_for_unresolved_choice(
+            template_text: template_text,
+            destination_text: dest_text,
+            provisional_winner: provisional_winner,
+            surface_path: surface_path,
+            match_kind: match_kind,
+            key_name: key_name,
+          ),
+        }.compact
+
+        record_unresolved_node_choice(
+          result: @result,
+          template_node: template_node,
+          destination_node: dest_node,
+          template_text: template_text,
+          destination_text: dest_text,
+          provisional_winner: provisional_winner,
+          case_prefix: "json",
+          case_parts: [match_kind, metadata[:key_name]],
+          surface_path: surface_path,
+          metadata: metadata,
+          conflict_fields: {
+            match_kind: match_kind,
+            key_name: metadata[:key_name],
+          },
+        )
+      end
+
+      def node_resolution_text(node)
+        return unless node.respond_to?(:text)
+
+        node.text
+      end
+
+      def resolution_key_name(template_node, dest_node)
+        unresolved_identifier_for_nodes(dest_node, template_node, methods: [:key_name])
+      end
+
+      def resolution_surface_path(template_node, dest_node)
+        segment = resolution_path_segment_for(template_node, dest_node)
+        line = dest_node&.respond_to?(:start_line) ? dest_node.start_line : nil
+        unresolved_surface_path_for(segment, fallback_segment: (line ? "line[#{line}]" : nil))
+      end
+
+      def resolution_path_segment_for(template_node, dest_node)
+        key_name = resolution_key_name(template_node, dest_node)
+        return "pair[#{key_name.inspect}]" if key_name
+
+        nil
+      end
+
+      def with_resolution_path_segment(*nodes)
+        with_first_unresolved_path_segment(*nodes, segment_builder: ->(node) { resolution_path_segment_for(node, node) }) { yield }
+      end
+
       # Emit a single node to the emitter
       # @param node [NodeWrapper] Node to emit
       # @param analysis [FileAnalysis] Analysis for accessing source
@@ -415,15 +505,28 @@ module Json
 
               if compact_empty_container?(value_node, container_comment_source, source_analysis)
                 emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
-                  @emitter.emit_pair(key, compact_container_literal_for(value_node), inline_comment: inline_text) if key
+                  @emitter.emit_pair(
+                    key,
+                    compact_container_literal_for(value_node),
+                    inline_comment: inline_text,
+                    metadata: emitter_line_metadata(analysis, line_number: node.start_line),
+                  ) if key
                 end
               elsif value_node.object?
                 emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
-                  @emitter.emit_nested_object_start(key, inline_comment: inline_text)
+                  @emitter.emit_nested_object_start(
+                    key,
+                    inline_comment: inline_text,
+                    metadata: emitter_line_metadata(analysis, line_number: node.start_line),
+                  )
                 end
               elsif value_node.array?
                 emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
-                  @emitter.emit_array_start(key, inline_comment: inline_text)
+                  @emitter.emit_array_start(
+                    key,
+                    inline_comment: inline_text,
+                    metadata: emitter_line_metadata(analysis, line_number: node.start_line),
+                  )
                 end
               end
 
@@ -435,22 +538,27 @@ module Json
                 emit_container_trailing_lines(container_comment_source, source_analysis)
 
                 if value_node.object?
-                  @emitter.emit_nested_object_end
+                  @emitter.emit_nested_object_end(metadata: emitter_line_metadata(analysis, line_number: node.end_line))
                 elsif value_node.array?
-                  @emitter.emit_array_end
+                  @emitter.emit_array_end(metadata: emitter_line_metadata(analysis, line_number: node.end_line))
                 end
               end
             else
               emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
-                @emitter.emit_pair(key, value_node.text, inline_comment: inline_text) if key
+                @emitter.emit_pair(
+                  key,
+                  value_node.text,
+                  inline_comment: inline_text,
+                  metadata: emitter_line_metadata(analysis, line_number: node.start_line),
+                ) if key
               end
             end
           end
         elsif node.container?
           if node.object?
-            @emitter.emit_object_start
+            @emitter.emit_object_start(metadata: emitter_line_metadata(analysis, line_number: node.start_line))
           elsif node.array?
-            @emitter.emit_array_start
+            @emitter.emit_array_start(metadata: emitter_line_metadata(analysis, line_number: node.start_line))
           end
 
           node.mergeable_children.each do |child|
@@ -460,14 +568,18 @@ module Json
           emit_container_trailing_lines(source_node, source_analysis)
 
           if node.object?
-            @emitter.emit_object_end
+            @emitter.emit_object_end(metadata: emitter_line_metadata(analysis, line_number: node.end_line))
           elsif node.array?
-            @emitter.emit_array_end
+            @emitter.emit_array_end(metadata: emitter_line_metadata(analysis, line_number: node.end_line))
           end
         elsif node.start_line && node.end_line
           if node.start_line == node.end_line
             emit_with_preferred_inline_comment(node, analysis, shared_attachment: inline_attachment) do |inline_text|
-              @emitter.emit_array_element(node.text, inline_comment: inline_text)
+              @emitter.emit_array_element(
+                node.text,
+                inline_comment: inline_text,
+                metadata: emitter_line_metadata(analysis, line_number: node.start_line),
+              )
             end
           else
             lines = []
@@ -475,7 +587,7 @@ module Json
               line = analysis.line_at(ln)
               lines << line if line
             end
-            @emitter.emit_raw_lines(lines)
+            @emitter.emit_raw_lines(lines, metadata: emitter_block_metadata(analysis, node.start_line))
           end
         end
       end

@@ -84,6 +84,8 @@ module Json
           preference: @preference,
           add_template_only_nodes: @add_template_only_nodes,
           remove_template_missing_nodes: @remove_template_missing_nodes,
+          resolution_mode: @resolution_mode,
+          unresolved_policy: @unresolved_policy.to_h,
           corruption_handling: @corruption_handling,
           match_refiner: @match_refiner,
         }
@@ -185,6 +187,7 @@ module Json
           preference: @preference,
           add_template_only_nodes: @add_template_only_nodes,
           remove_template_missing_nodes: @remove_template_missing_nodes,
+          resolution_mode: @resolution_mode,
           corruption_handling: @corruption_handling,
           match_refiner: @match_refiner,
           node_typing: @node_typing,
@@ -219,12 +222,16 @@ module Json
             preference: @preference,
             add_template_only_nodes: @add_template_only_nodes,
             remove_template_missing_nodes: @remove_template_missing_nodes,
+            resolution_mode: @resolution_mode,
+            unresolved_policy: @unresolved_policy.to_h,
           },
           metadata: {merger: self.class.name},
           options: {
             preference: @preference,
             add_template_only_nodes: @add_template_only_nodes,
             remove_template_missing_nodes: @remove_template_missing_nodes,
+            resolution_mode: @resolution_mode,
+            unresolved_policy: @unresolved_policy.to_h,
           },
           language_chain: [:json],
           delegate_metadata: {merger: self.class.name},
@@ -235,6 +242,7 @@ module Json
         complete_runtime_root_session!(
           root_operation: root_operation,
           replacement_text: merge_result.to_json,
+          unresolved_cases: merge_result.unresolved_cases,
           metadata: {
             stats: merge_result.statistics,
             decisions: merge_result.decision_summary,
