@@ -204,7 +204,7 @@ RSpec.describe Json::Merge::SmartMerger do
             "enabled": true
           }
         JSON
-        <<~JSON
+        <<~JSON,
           {
             "name": "destination",
             "enabled": true

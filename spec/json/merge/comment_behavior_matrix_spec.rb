@@ -21,11 +21,11 @@ RSpec.describe Json::Merge::SmartMerger, "comment behavior matrix", :json_gramma
         [line, "#{line},"]
       end
     end
-      line_based_comment_matrix_adapter(
-        analysis_class: Json::Merge::FileAnalysis,
-        merger_class: Json::Merge::SmartMerger,
-        capabilities: {},
-        source_builder: lambda do |*lines|
+    line_based_comment_matrix_adapter(
+      analysis_class: Json::Merge::FileAnalysis,
+      merger_class: Json::Merge::SmartMerger,
+      capabilities: {},
+      source_builder: lambda do |*lines|
         rendered_lines = lines.map(&:dup)
         first_structural_index = rendered_lines.index { |line| line.match?(/^\s*"/) } || rendered_lines.length
         leading_candidates = rendered_lines[0...first_structural_index]

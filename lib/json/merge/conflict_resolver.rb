@@ -10,9 +10,11 @@ module Json
     #   resolver.resolve(result)
     class ConflictResolver < Ast::Merge::ConflictResolverBase
       include Ast::Merge::StructuredEmitterProvenanceSupport
+
       class MissingSharedInlineRegionError < Json::Merge::Error; end
 
       include ::Ast::Merge::TrailingGroups::DestIterate
+
       attr_reader :corruption_handling
 
       # Creates a new ConflictResolver
@@ -409,7 +411,7 @@ module Json
         dest_text = node_resolution_text(dest_node)
         return if template_text == dest_text
 
-        provisional_winner = preference_for_pair(template_node, dest_node) == :template ? :template : :destination
+        provisional_winner = (preference_for_pair(template_node, dest_node) == :template) ? :template : :destination
         key_name = resolution_key_name(template_node, dest_node)
         surface_path = resolution_surface_path(template_node, dest_node)
         metadata = {
