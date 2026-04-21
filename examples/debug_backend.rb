@@ -98,9 +98,13 @@ end
 puts
 
 # Check JSON grammar registration
-puts "Checking JSON grammar registration:"
+puts "Checking Json::Merge registration bootstrap:"
 puts "-" * 70
 require "json/merge"
+
+puts "  Json::Merge.register_backend! has run during require"
+registrations = TreeHaver.registered_language(:json)
+puts "  Registered entries: #{registrations.keys.inspect}"
 
 if TreeHaver::Language.respond_to?(:json)
   puts "  ✓ TreeHaver::Language.json is available"
@@ -117,7 +121,7 @@ end
 puts
 
 # Check GrammarFinder
-puts "Checking GrammarFinder for JSON:"
+puts "Checking underlying tree-sitter GrammarFinder for JSON:"
 puts "-" * 70
 finder = TreeHaver::GrammarFinder.new(:json)
 puts "  Finder available?: #{finder.available?}"
