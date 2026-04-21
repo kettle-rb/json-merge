@@ -5,8 +5,8 @@ require "set"
 
 # External gems
 # TreeHaver provides a unified cross-Ruby interface to tree-sitter.
-# It handles grammar discovery and backend selection automatically
-# via parser_for(:json). No manual registration needed.
+# Json::Merge registers its TreeHaver grammar bootstrap when loaded so
+# parser_for(:json) can resolve a registered grammar consistently.
 require "tree_haver"
 require "version_gem"
 
@@ -41,6 +41,8 @@ module Json
   # @see FileAnalysis Analyzes JSON structure
   # @see ConflictResolver Resolves content conflicts
   module Merge
+    BACKEND_REGISTRY = Struct.new(:registered, :mutex).new(false, Mutex.new)
+
     # Base error class for Json::Merge
     # Inherits from Ast::Merge::Error for consistency across merge gems.
     class Error < Ast::Merge::Error; end
@@ -104,8 +106,23 @@ module Json
     autoload :ConflictResolver, "json/merge/conflict_resolver"
     autoload :SmartMerger, "json/merge/smart_merger"
     autoload :ObjectMatchRefiner, "json/merge/object_match_refiner"
+
+    class << self
+      def register_backend!
+        BACKEND_REGISTRY.mutex.synchronize do
+          return if BACKEND_REGISTRY.registered
+
+          grammar_finder = TreeHaver::GrammarFinder.new(:json)
+          grammar_finder.register! if grammar_finder.available?
+
+          BACKEND_REGISTRY.registered = true
+        end
+      end
+    end
   end
 end
+
+Json::Merge.register_backend!
 
 # Register with ast-merge's MergeGemRegistry for RSpec dependency tags
 # Only register if MergeGemRegistry is loaded (i.e., in test environment)

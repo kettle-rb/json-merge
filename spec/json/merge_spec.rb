@@ -78,4 +78,12 @@ RSpec.describe Json::Merge do
       expect(error.content).to eq('{"bad"}')
     end
   end
+
+  describe ".register_backend!" do
+    it "registers json with TreeHaver when a grammar is available" do
+      registrations = TreeHaver.registered_language(:json)
+
+      expect(registrations).to be_a(Hash)
+    end
+  end
 end
